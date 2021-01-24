@@ -84,6 +84,14 @@ Sequencer bpm defaults to 120.00 change with `-b 140`.
 Hit space and you should hear the device start.  If you set `-e` the enter key works as well.  See below keyboard options for an explanation of the key bindings and options.
 
 
+## Connecting Pioneer CDJs
+
+The `-v`  option creates a virtual CDJ device in software that can communicate with Pioneer CDJs on the LAN.  `F1` to `F4` copies the bpm from a player 1 to 4 to adj's alsa sequencer and thus to midi devices.
+
+
+![adj with vdj integration](doc/screen-ani.gif)
+
+
 
 ## Midi Mixing
 
