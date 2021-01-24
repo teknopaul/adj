@@ -1,0 +1,16 @@
+status: reported
+responsible: nobody
+created: 2021-01-13T21:14:06
+reporter: teknopaul
+priority: 9
+type: bug
+modified: 2021-01-13T21:14:29
+
+keyboard repeat is annoying
+
+- need to swallow unused events
+- adj_nudging - thus discard other nudges
+- nudge needs its own thread, so it does not sleep the keyb loop
+  - this will be more important with a GUI
+  - BEATS_QUEUED fixed to 1 and maybe we can guarantee the main loop fires once per beat thus nudge onteh main loop
+  - may need to change skipping a sleep for adding just the missing events and no more so we _always_  have one bean programmed

@@ -1,0 +1,9 @@
+status: closed
+responsible: nobody
+created: 2021-01-13T21:15:39
+reporter: teknopaul
+priority: 9
+type: bug
+modified: 2021-01-13T21:33:30
+
+seg fault on quit

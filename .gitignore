@@ -1,0 +1,6 @@
+.bzr/
+.bzrignore
+target/
+keyb2midi
+.sublime-workspace
+doc-internal/

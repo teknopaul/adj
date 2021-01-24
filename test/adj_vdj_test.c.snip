@@ -1,0 +1,32 @@
+#include <string.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <linux/input.h>
+#include <sys/stat.h>
+#include <ctype.h>
+#include <sys/select.h>
+#include <alsa/asoundlib.h>
+
+#include "adj_vdj.h"
+#include "tui.h"
+
+//SNIP_FILE SNIP_adj_vdj_tui  ../src/adj_vdj.c
+
+#include "snip_core.h"
+
+int main(int argc , char* argv[]) 
+{
+    
+    tui_init(20);
+    render_backline();
+    render_model(2, "XDJ-1000");
+    render_status(2, ">sM*");
+    render_bpm(2, 120.0000f);
+    char* emoji = cdj_flags_to_emoji(CDJ_STAT_FLAG_PLAY|CDJ_STAT_FLAG_SYNC);
+    render_status(2, emoji);
+    free(emoji);
+
+    tui_exit();
+    return 0;
+}
+

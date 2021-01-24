@@ -1,0 +1,9 @@
+status: reported
+responsible: nobody
+created: 2021-01-13T22:40:15
+reporter: teknopaul
+priority: 9
+type: bug
+modified: 2021-01-13T22:40:15
+
+signal_exit cannot access atomics, need a non atomic flag and loop somewhere

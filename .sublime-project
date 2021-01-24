@@ -1,0 +1,31 @@
+{
+    "folders":
+    [
+        {
+            "path": "src",
+            "folder_exclude_patterns": ["backup"],
+            "follow_symlinks": true
+        },
+        {
+            "path": "doc",
+            "name": "Documentation",
+            "file_exclude_patterns": []
+        },
+        {
+            "path": "doc-internal",
+            "name": "Docs not published on t'internet, e.g todo.md",
+            "file_exclude_patterns": []
+        }
+    ],
+    "settings":
+    {
+        "tab_size": 4
+    },
+    "build_systems":
+    [
+        {
+            "name": "make",
+            "shell_cmd": "make"
+        }
+    ]
+}

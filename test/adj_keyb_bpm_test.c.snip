@@ -1,0 +1,30 @@
+#include <string.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <linux/input.h>
+#include <sys/stat.h>
+#include <ctype.h>
+#include <sys/select.h>
+#include <alsa/asoundlib.h>
+
+//SNIP_FILE SNIP_adjh_constants  ../src/adj.h
+//SNIP_FILE //SNIP_set_bpm  ../src/adj_keyb.c
+
+#include "snip_core.h"
+
+int main(int argc , char* argv[]) 
+{
+    
+    reset_char_bpm();
+    add_char_bpm('1');
+    add_char_bpm('2');
+    add_char_bpm('0');
+    add_char_bpm('.');
+    add_char_bpm('1');
+    snip_assert("bpm done", add_char_bpm('2') );
+
+    snip_equals("bpm value", 120.12, get_bpm() );
+
+    return 0;
+}
+

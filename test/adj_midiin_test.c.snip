@@ -1,0 +1,79 @@
+#include <string.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <linux/input.h>
+#include <sys/stat.h>
+#include <ctype.h>
+#include <sys/select.h>
+#include <alsa/asoundlib.h>
+
+//SNIP_FILE SNIP_adjh_constants  ../src/adj.h
+
+#include "snip_core.h"
+
+// ui callbacks
+typedef void (*adj_message_handler_pt)(char* message);
+typedef void (*adj_data_change_handler_pt)(int item, char* data);
+
+typedef struct {
+    char*       seq_name;
+    int         client_id;
+    snd_seq_t*  alsa_seq;
+    int         alsa_port;
+    int         q;
+    float       bpm;
+    snd_seq_tick_time_t tick;
+    char        alsa_sync;
+    adj_message_handler_pt      message_handler;
+    adj_data_change_handler_pt  data_change_handler;
+} adj_seq_info_t;
+
+
+//SNIP_FILE SNIP_midiin_constants  ../src/adj_midiin.h
+//SNIP_FILE SNIP_midiin_parser     ../src/adj_midiin.c
+
+int main(int argc , char* argv[]) 
+{
+	char line[256];
+	adj_midiin_map* map = calloc(1, sizeof(adj_midiin_map));
+
+	strcpy(line, "# hello");
+	snip_equals("comment ", ADJ_OK, parse_line(line, 1, map) );
+
+	strcpy(line, "start    0   80   127");
+	snip_equals("happy path", ADJ_OK, parse_line(line, 2, map) );
+
+	strcpy(line, "start   0  23333 127");
+	snip_equals("range", ADJ_SYNTAX, parse_line(line, 3, map) );
+
+	strcpy(line, "start   0  23333");
+	snip_equals("too short", ADJ_SYNTAX, parse_line(line, 4, map) );
+
+	strcpy(line, "start   i am a teapot!");
+	snip_equals("NaN", ADJ_SYNTAX, parse_line(line, 5, map) );
+
+	strcpy(line, "");
+	snip_equals("empty", ADJ_OK, parse_line(line, 6, map) );
+
+	strcpy(line, "\n");
+	snip_equals("getline returns the trailing \n", ADJ_OK, parse_line(line, 7, map) );
+
+
+	strcpy(line, "stop    0   80   127");
+	snip_equals("stop", ADJ_OK, parse_line(line, 8, map) );
+
+	strcpy(line, "nudge_fwd    0   80   127");
+	snip_equals("nudge_fwd", ADJ_OK, parse_line(line, 9, map) );
+
+	strcpy(line, "nudge_ffwd    0   80   127");
+	snip_equals("nudge_ffwd", ADJ_OK, parse_line(line, 10, map) );
+
+	strcpy(line, "nudge_rew    0   80   127");
+	snip_equals("nudge_rew", ADJ_OK, parse_line(line, 11, map) );
+
+	strcpy(line, "nudge_frew    0   80   127");
+	snip_equals("nudge_frew", ADJ_OK, parse_line(line, 12, map) );
+
+	return 0;
+}
+

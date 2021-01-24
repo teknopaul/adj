@@ -1,0 +1,30 @@
+# adj midi map
+#
+# nanoKONTROL uses channel 1, 127 = keydown, 0 = keyup
+#
+# N.B. ch 0 = omni
+#
+# name      ch ctrl  val
+
+start       0  80    127
+stop        0  63    127
+toggle      0  81    127
+q_restart   0  62    127
+
+nudge_fwd   0  61    127
+nudge_ffwd  0  59    127
+nudge_rew   0  60    127
+nudge_frew  0  58    127
+
+tempo_inc   0    57    127
+#tempo_inc_min
+#tempo_inc_1
+
+tempo_dec   0    56    127
+#tempo_dec_min
+#tempo_dec_1
+
+slider      2    12    *
+
+slider_on   2    37    127
+slider_off  2    28    127

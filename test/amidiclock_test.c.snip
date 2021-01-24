@@ -1,0 +1,38 @@
+#include <string.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <linux/input.h>
+#include <sys/stat.h>
+#include <ctype.h>
+#include <sys/select.h>
+#include <alsa/asoundlib.h>
+
+
+//SNIP_FILE SNIP_constants ../src/amidiclock.c
+//SNIP_FILE SNIP_sleep_time ../src/amidiclock.c
+
+#include "snip_core.h"
+
+int main(int argc , char* argv[]) 
+{
+	BEATS_QUEUED = 4;
+	struct timespec ts = loop_sleep_time(120.000);
+	snip_assert("1 secs zero", ts.tv_sec == 2);
+	snip_assert("1 nanos positive", ts.tv_nsec >= 0);
+	snip_assert("1 nanos < 1 billion", ts.tv_nsec <= 1000000000);
+	snip_assert("1 nanos zero", ts.tv_nsec == 0);
+
+	ts = loop_sleep_time(100.000);
+	snip_assert("2 nanos positive", ts.tv_nsec >= 0);
+	snip_assert("2 nanos nanos < 1 billion", ts.tv_nsec <= 1000000000);
+	snip_assert("2 nanos 400,000,000", ts.tv_nsec == 400000000);
+
+
+	ts = one_beat_sleep_time(120.000);
+	snip_assert("one_beat nanos positive", ts.tv_nsec >= 0);
+	snip_assert("one_beat nanos nanos < 1 billion", ts.tv_nsec <= 1000000000);
+	//printf("ts.tv_sec = %li, ts.tv_nsec = %li\n", ts.tv_sec, ts.tv_nsec),
+	snip_assert("one_beat secs 0", ts.tv_sec == 0);
+	snip_assert("one_beat nanos 500,000,000", ts.tv_nsec == 500000000);
+}
+

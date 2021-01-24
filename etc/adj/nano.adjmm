@@ -1,0 +1,17 @@
+#
+# auto-generated adjmm file
+
+start           0    80    127
+stop            0    63    127
+q_restart       0    62    127
+nudge_fwd       0    61    127
+nudge_ffwd      0    59    127
+nudge_rew       0    60    127
+nudge_frew      0    58    127
+tempo_inc_min   0    55    127
+tempo_inc       0    57    127
+tempo_inc_1     0    55    127
+tempo_dec_min   0    55    127
+tempo_dec       0    56    127
+tempo_dec_1     0    55    127
+
