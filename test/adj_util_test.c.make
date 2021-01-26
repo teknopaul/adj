@@ -4,11 +4,10 @@ cd $(dirname $0)
 
 #prof="-fprofile-arcs -ftest-coverage"
 
-test=adj_vdj_test
+test=adj_util_test
 
-gcc $prof -Wall -Werror -Wno-unused-function -Wno-unused-variable -g -O0 -I../src ../target/tui.o \
+gcc $prof -Wall -Werror -Wno-unused-function -g -O0 \
     $test.c \
-    -lcdj -lpthread \
     -o $test \
     && ./$test \
     && rm $test \

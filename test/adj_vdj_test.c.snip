@@ -6,6 +6,7 @@
 #include <ctype.h>
 #include <sys/select.h>
 #include <alsa/asoundlib.h>
+#include <stdatomic.h>
 
 #include "adj_vdj.h"
 #include "tui.h"
@@ -14,12 +15,14 @@
 
 #include "snip_core.h"
 
+char tui = 0;
+
 int main(int argc , char* argv[]) 
 {
     
     tui_init(20);
     render_backline();
-    render_model(2, "XDJ-1000");
+    render_model(2, "XDJ-1000", 0);
     render_status(2, ">sM*");
     render_bpm(2, 120.0000f);
     char* emoji = cdj_flags_to_emoji(CDJ_STAT_FLAG_PLAY|CDJ_STAT_FLAG_SYNC);

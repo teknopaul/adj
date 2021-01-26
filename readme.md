@@ -4,12 +4,13 @@
 
 Beat-mixing midi instruments on Linux.
 
-I write this to enable mixing a Roland TR-6s drum machine with a vinyl set.  a.k.a. dex, fx & 909.  The TR-6s has controls to stop start and tempo adjust, but not with enough precision to beat-mix a drum track on to a whole playing record.  A midi controller ro usb keyboard can be used to avoid having your laptop front and center.
+I write this to enable mixing a Roland TR-6s drum machine with a vinyl set.  a.k.a. dex, fx & 909.  The TR-6s has controls to stop start and tempo adjust, but not with enough precision to beat-mix a drum track on to a whole playing record.  A midi controller or usb keyboard can be used to avoid having your laptop front and center.
 
 ## Features
 
 - Cueing midi instruments, i.e. start / stop
-- Nudging, i.e. speeding up or slowing down temporarily to catch up with a different track
+- Nudging, i.e. speeding up or slowing down temporarily to catch up with a different track.
+- Keeping time with Pioneer CDJs, (using libdj)
 - Tempo adjust (ala pitch control)
 - Quantized restart, jump the midi device to the start of it sequence on the next beat.
 - Setting tempo to a precise value e.g. 123.00 bpm
@@ -25,15 +26,18 @@ I write this to enable mixing a Roland TR-6s drum machine with a vinyl set.  a.k
 
 ## Build the binary
 
+	git clone https://gitlab.com/teknopaul/libcdj
+    (cd libcdj; make; sudo make install)
+
 	sudo apt install libasound2-dev
 	git clone https://gitlab.com/teknopaul/adj
-	cd adj
-	make
-	sudo make install
+	(cd adj; make; sudo make install)
+
+make deb requires dpkg build tools, `make test` requires `sniprun`. Output is just a copul of files if you wnat to packge for other distros.
 
 ## Overview/Usage
 
-ADJ is a tool for beat mixing midi instruments, its not about auto-sync, quite the reverse. it enables you to manually beat-mix midi devices.
+ADJ is a tool for beat mixing midi instruments, its not about auto-sync, quite the reverse. It enables you to manually beat-mix midi devices.
 
 The main `adj` program is a cli app that starts an alsa sequencer, this can be connected to one or many synths or drum machines, either physical or virtual devices.
 
@@ -47,6 +51,8 @@ The DJ can cue in the drum machine, tempo adjust live to to the playing vinyl re
 Sync is not automated, you need to know how to beat mix already, (or want to have some fun learning how).
 
 Controlling `adj` is performed with the keyboard or an external midi controller (or both).
+
+If you use Pioneer CDJs/XDJs, `adj` can automatically keep midi instruments in sync with these decks.
 
 
 ## Connecting an external drum machine

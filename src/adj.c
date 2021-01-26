@@ -47,8 +47,8 @@ static void usage()
 
 // user interface
 
+char tui = 0;
 static char keyb_input = 0;
-static char tui = 0;
 static int message_ticks = 0;
 
 
@@ -79,9 +79,9 @@ static void data_item_fixed_width(int idx, char* name, char* value)
     tui_data_at_fixed(value, 10, 15, 14 - idx);
 }
 
-static void tui_setup()
+static void tui_setup(int height)
 {
-    tui_init(20);
+    tui_init(height);
     tui_set_window_title("adj - powered by libadj and libvdj");
 
     data_item(ADJ_ITEM_PORT, "alsa port:", "");
@@ -138,7 +138,10 @@ static void signal_exit(int sig)
     adj_midiin_exit();
 
     if (tui) {
+        tui_lock();
+        tui = 0;
         tui_exit();
+        tui_unlock();
     } else {
         putchar('\n');
     }
@@ -159,17 +162,19 @@ static void signal_exit(int sig)
 
 // callbacks
 
-static void data_change_handler(int idx, char* value)
+static void data_change_handler(adj_seq_info_t* adj, int idx, char* value)
 {
     if (tui) {
-        tui_lock();
-        tui_data_at_fixed(value, 10, 15, 14 - idx);
-        tui_unlock();
-        fflush(stdout);
+        if  (idx <= ADJ_ITEM_OP) {
+            tui_lock();
+            tui_data_at_fixed(value, 10, 15, 14 - idx);
+            tui_unlock();
+            fflush(stdout);
+        }
     }
 }
 
-static void message_handler(char* message)
+static void message_handler(adj_seq_info_t* adj, char* message)
 {
     if (tui) {
         tui_lock();
@@ -183,7 +188,7 @@ static void message_handler(char* message)
     fflush(stdout);
 }
 
-static void tick_handler(snd_seq_tick_time_t tick)
+static void tick_handler(adj_seq_info_t* adj, snd_seq_tick_time_t tick)
 {
     int quarter_beats = tick == 0 ? 0 : tick / ADJ_CLOCKS_PER_BEAT;
 
@@ -205,15 +210,21 @@ static void tick_handler(snd_seq_tick_time_t tick)
         }
     }
     fflush(stdout);
+    if (adj->vdj) {
+        if (quarter_beats % 4 == 0) {
+            unsigned char bar_pos = 1 + (quarter_beats % 16) / 4;
+            adj_vdj_beat(adj, bar_pos);
+        }
+    }
 }
 
-static void exit_handler()
+static void exit_handler(adj_seq_info_t* adj)
 {
     adj_paused = 0;
     signal_exit(0);
 }
 
-static void stop_handler()
+static void stop_handler(adj_seq_info_t* adj)
 {
     if (tui) {
         tui_lock();
@@ -222,7 +233,7 @@ static void stop_handler()
     }
     else puts("");
 }
-static void start_handler()
+static void start_handler(adj_seq_info_t* adj)
 {
     //if (tui) tui_text_at("|...:...:...:...|...:...:...:...|...:...:...:...|...:...:...:...|", 2, 1);
 }
@@ -236,7 +247,7 @@ int main(int argc, char* argv[])
     char* in_port_name = NULL;
     char auto_start = 0;
     char vdj = 0;
-    uint32_t vdj_flags = 0;
+    uint32_t vdj_flags = VDJ_FLAG_DEV_XDJ | VDJ_FLAG_AUTO_ID;
     unsigned int enter_toggles = 0;
     vdj_t* v;
     adj_seq_info_t* adj = adj_calloc();
@@ -287,7 +298,7 @@ int main(int argc, char* argv[])
 
     if ( isatty(STDOUT_FILENO) ) {
         tui = 1;
-        tui_setup();
+        tui_setup(vdj ? 21 : 15);
     }
 
     // setup alsa sequencer

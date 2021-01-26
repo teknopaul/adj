@@ -11,11 +11,13 @@
 
 #include "snip_core.h"
 
-// ui callbacks
-typedef void (*adj_message_handler_pt)(char* message);
-typedef void (*adj_data_change_handler_pt)(int item, char* data);
+typedef struct adj_seq_info_s adj_seq_info_t;
 
-typedef struct {
+// ui callbacks
+typedef void (*adj_message_handler_pt)(adj_seq_info_t* adj, char* message);
+typedef void (*adj_data_change_handler_pt)(adj_seq_info_t* adj, int item, char* data);
+
+struct adj_seq_info_s {
     char*       seq_name;
     int         client_id;
     snd_seq_t*  alsa_seq;
@@ -26,7 +28,7 @@ typedef struct {
     char        alsa_sync;
     adj_message_handler_pt      message_handler;
     adj_data_change_handler_pt  data_change_handler;
-} adj_seq_info_t;
+};
 
 
 //SNIP_FILE SNIP_midiin_constants  ../src/adj_midiin.h

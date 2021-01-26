@@ -1,0 +1,30 @@
+
+#include <time.h>
+
+//SNIP_FILE SNIP_adjh_constants  ../src/adj.h
+
+#include "snip_core.h"
+
+//SNIP_FILE SNIP_utils  ../src/libadj.c
+
+
+int main(int argc , char* argv[]) 
+{
+
+
+    unsigned int one_beat_micros = adj_bpm_to_micros(120.0);
+
+    snip_assert("adj_bpm_to_micros() ", one_beat_micros == 500000);
+
+    struct timespec one_beat = adj_one_beat_time(120.00);
+
+    snip_assert("adj_one_beat_time().tv_sec ", one_beat.tv_sec == 0 );
+    snip_assert("adj_one_beat_time().tv_nsec ", one_beat.tv_nsec == 500000000);
+
+    float bpm = adj_micros_to_bpm(500000);
+
+    snip_assert("adj_micros_to_bpm() ", bpm < 120.0001 && bpm > 119.9999);
+
+    return 0;
+}
+

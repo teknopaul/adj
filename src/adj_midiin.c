@@ -158,7 +158,7 @@ static adj_midiin_map* read_map(adj_seq_info_t *adj, const char* path)
     ssize_t read;
     FILE* fp = fopen(path, "r");
     if (fp == NULL) {
-        adj->message_handler("error: unable to read adjmm file");
+        adj->message_handler(adj, "error: unable to read adjmm file");
         return NULL;
     }
 
@@ -174,7 +174,7 @@ static adj_midiin_map* read_map(adj_seq_info_t *adj, const char* path)
     /*
     for ( i = 0; i < ADJ_MAX_OP; i++ ) {
         if (map->op[i].controller == ADJ_UNSET_VALUE) {
-            adj->message_handler("warn: midi map is missing an operation");
+            adj->message_handler(adj, "warn: midi map is missing an operation");
         }
     }
     */
@@ -291,13 +291,13 @@ static void* read_midiin(void* arg)
                     }
 
                     case ADJ_MIDIIN_SLIDER_ON: {
-                        adj->data_change_handler(ADJ_ITEM_OP, "slide on");
+                        adj->data_change_handler(adj, ADJ_ITEM_OP, "slide on");
                         slider_on = 1;
                         slider_value = -1;
                         continue;
                     }
                     case ADJ_MIDIIN_SLIDER_OFF: {
-                        adj->data_change_handler(ADJ_ITEM_OP, "slide off");
+                        adj->data_change_handler(adj, ADJ_ITEM_OP, "slide off");
                         slider_on = 0;
                         slider_value = -1;
                         continue;
@@ -306,7 +306,7 @@ static void* read_midiin(void* arg)
                         if (slider_on) {
                             do_slider(adj, ev->data.control.value);
                         } else {
-                            adj->message_handler("slider is off");
+                            adj->message_handler(adj, "slider is off");
                         }
                         continue;
                     }

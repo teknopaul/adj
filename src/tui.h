@@ -61,6 +61,8 @@ void tui_data_at_fixed(char* data, int width, int x, int y);
  */
 void tui_error_at(char* message, int x, int y);
 
+void tui_debug(const char* format, ...);
+
 /**
  * Moove the cursor this is required before any draw operation
  */

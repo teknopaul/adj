@@ -19,19 +19,19 @@
 #include <stdatomic.h>
 
 // Global state
-static unsigned _Atomic adj_alsa_initialised = ATOMIC_VAR_INIT(0);
-static unsigned _Atomic adj_running = ATOMIC_VAR_INIT(0);
-static unsigned _Atomic adj_paused = ATOMIC_VAR_INIT(0);
-static unsigned _Atomic adj_q_restart = ATOMIC_VAR_INIT(0);
+static unsigned _Atomic adj_alsa_initialised = ATOMIC_VAR_INIT(0); // setup properly
+static unsigned _Atomic adj_running = ATOMIC_VAR_INIT(0);          // main loop is alive
+static unsigned _Atomic adj_paused = ATOMIC_VAR_INIT(0);           // alive but not making noises
+static unsigned _Atomic adj_q_restart = ATOMIC_VAR_INIT(0);        // lock to start the alsa sequencer again
 
-static struct timespec adj_pause = { 0L, 50000000L };
+static pthread_mutex_t adj_sync_mutex = PTHREAD_MUTEX_INITIALIZER; // hang until we get a beat sync from an external device (e.g. CDJ)
 
 //noop handlers
-static void nop_message_handler(char* message){}
-static void nop_data_change_handler(int item, char* data){}
-static void nop_tick_handler(snd_seq_tick_time_t tick){}
-static void nop_stop_handler(){}
-static void nop_start_handler(){}
+static void nop_message_handler(adj_seq_info_t* adj, char* message){}
+static void nop_data_change_handler(adj_seq_info_t* adj, int item, char* data){}
+static void nop_tick_handler(adj_seq_info_t* adj, snd_seq_tick_time_t tick){}
+static void nop_stop_handler(adj_seq_info_t* adj){}
+static void nop_start_handler(adj_seq_info_t* adj){}
 
 // start midi
 
@@ -46,7 +46,28 @@ static int set_tempo(adj_seq_info_t* adj, float bpm)
     if ( snd_seq_set_queue_tempo(adj->alsa_seq, adj->q, tempo) == 0) {
         if ( (bpm_s = (char*) calloc(1, 11) )) {
             snprintf(bpm_s, 10, "%f", bpm);
-            adj->data_change_handler(ADJ_ITEM_BPM, bpm_s);
+            adj->data_change_handler(adj, ADJ_ITEM_BPM, bpm_s);
+            free(bpm_s);
+        }
+        return ADJ_OK;
+    } else {
+        return ADJ_ALSA;
+    }
+}
+
+
+static int set_tempo_micros(adj_seq_info_t* adj, unsigned int micros_per_beat)
+{
+    char* bpm_s;
+    snd_seq_queue_tempo_t* tempo;
+    snd_seq_queue_tempo_alloca(&tempo);
+    snd_seq_queue_tempo_set_tempo(tempo, micros_per_beat);
+    snd_seq_queue_tempo_set_ppq(tempo, ADJ_PPQ);
+
+    if ( snd_seq_set_queue_tempo(adj->alsa_seq, adj->q, tempo) == 0) {
+        if ( (bpm_s = (char*) calloc(1, 11) )) {
+            snprintf(bpm_s, 10, "%f", adj_micros_to_bpm(micros_per_beat));
+            adj->data_change_handler(adj, ADJ_ITEM_BPM, bpm_s);
             free(bpm_s);
         }
         return ADJ_OK;
@@ -62,7 +83,7 @@ static int clear_queue(adj_seq_info_t* adj)
     snd_seq_remove_events_set_queue(ev, adj->q);
     snd_seq_remove_events_set_condition(ev, SND_SEQ_REMOVE_OUTPUT | SND_SEQ_REMOVE_IGNORE_OFF);
     snd_seq_remove_events(adj->alsa_seq, ev);
-    adj->data_change_handler(ADJ_ITEM_EVENTS, "0");
+    adj->data_change_handler(adj, ADJ_ITEM_EVENTS, "0");
     return ADJ_OK;
 }
 
@@ -71,7 +92,7 @@ static int midi_start(adj_seq_info_t* adj)
     clear_queue(adj);
     // start the queue, tell midi devices about it
     snd_seq_start_queue(adj->alsa_seq, adj->q, NULL);
-    adj->data_change_handler(ADJ_ITEM_STATE_Q, "running");
+    adj->data_change_handler(adj, ADJ_ITEM_STATE_Q, "running");
 
     // send the start midi event
     snd_seq_event_t ev;
@@ -83,7 +104,7 @@ static int midi_start(adj_seq_info_t* adj)
     snd_seq_ev_schedule_tick(&ev, adj->q, SND_SEQ_TIME_MODE_ABS, ADJ_TICK0);
     snd_seq_event_output(adj->alsa_seq, &ev);
     snd_seq_drain_output(adj->alsa_seq);
-    adj->start_handler();
+    adj->start_handler(adj);
 
     return ADJ_OK;
 }
@@ -102,11 +123,11 @@ static int midi_stop(adj_seq_info_t* adj)
 
     snd_seq_ev_schedule_tick(&ev, adj->q, SND_SEQ_TIME_MODE_REL, ADJ_TICK0);
     snd_seq_event_output_direct(adj->alsa_seq, &ev);
-    adj->stop_handler();
+    adj->stop_handler(adj);
 
     snd_seq_stop_queue(adj->alsa_seq, adj->q, NULL);
     snd_seq_drain_output(adj->alsa_seq) ;
-    adj->data_change_handler(ADJ_ITEM_STATE_Q, "paused");
+    adj->data_change_handler(adj, ADJ_ITEM_STATE_Q, "paused");
 
     return ADJ_OK;
 }
@@ -136,7 +157,7 @@ static int report_events(adj_seq_info_t* adj, snd_seq_queue_status_t* info)
     int events = snd_seq_queue_status_get_events(info);
 
     snprintf(buf, 23, "%i", events);
-    adj->data_change_handler(ADJ_ITEM_EVENTS, buf);
+    adj->data_change_handler(adj, ADJ_ITEM_EVENTS, buf);
     return events;
 }
 
@@ -144,11 +165,12 @@ static int report_events(adj_seq_info_t* adj, snd_seq_queue_status_t* info)
 
 // nudge, thread handles nudges and bpm changes
 
-static unsigned _Atomic adj_nudge_running = ATOMIC_VAR_INIT(1);  // loopis running
-static signed _Atomic adj_nudge_multiplier = ATOMIC_VAR_INIT(0); // instruction to nudge
-static unsigned _Atomic adj_nudge_exec = ATOMIC_VAR_INIT(0);     // how much by
-static float _Atomic adj_set_bpm = ATOMIC_VAR_INIT(0.0);        // new bpm
-static float _Atomic adj_adjust_bpm = ATOMIC_VAR_INIT(0.0);        // bpm increment or decrement
+static unsigned _Atomic adj_nudge_running = ATOMIC_VAR_INIT(1);  // loop is running
+static unsigned _Atomic adj_nudge_exec = ATOMIC_VAR_INIT(0);     // instruction to nudge
+static signed _Atomic adj_nudge_multiplier = ATOMIC_VAR_INIT(0); // how much by as multiplier
+static signed _Atomic adj_nudge_ms = ATOMIC_VAR_INIT(0);         // how much by as milliseconds
+static float _Atomic adj_set_bpm = ATOMIC_VAR_INIT(0.0);         // new bpm
+static float _Atomic adj_adjust_bpm = ATOMIC_VAR_INIT(0.0);      // bpm increment or decrement
 
 /**
  * Returns a value that is greater than or less than the passed in bpm.
@@ -156,13 +178,23 @@ static float _Atomic adj_adjust_bpm = ATOMIC_VAR_INIT(0.0);        // bpm increm
  * Sequence is slowed down if multiplier is negative.
  * Resolution is 0.1 bpm, which is pretty fine, 10 or 20 is more convenient for beat mixing by ear at 120 bpm.
  */
-static float adj_nudge_bpm(float bpm, int multiplier)
+static float adj_get_nudge_bpm(float bpm, int multiplier)
 {
     float tmp_bpm = bpm + (0.1 * multiplier);
     if ( tmp_bpm < 0 ) {
         tmp_bpm = 0;
     }
     return tmp_bpm;
+}
+
+/**
+ * return how much we need to change the bpm by for one beat to 
+ * shift the sequencer by the specified number of milliseconds.
+ * value returned is new bpm in micros_per_beat
+ */
+static unsigned int adj_get_nudge_micros(float bpm, int millis)
+{
+    return adj_bpm_to_micros(bpm) + millis * 1000;
 }
 
 /**
@@ -174,12 +206,20 @@ static void* nudge_loop(void* arg)
 
     while (adj_nudge_running) {
         if (adj_nudge_exec) {
-            set_tempo(adj, adj_nudge_bpm(adj->bpm, adj_nudge_multiplier));
-            adj_one_beat_sleep(adj->bpm);
-            set_tempo(adj, adj->bpm);
+            if (adj_nudge_multiplier) {
+                set_tempo(adj, adj_get_nudge_bpm(adj->bpm, adj_nudge_multiplier));
+                adj_one_beat_sleep(adj->bpm);
+                set_tempo(adj, adj->bpm);
+            } else if (adj_nudge_ms) {
+                set_tempo_micros(adj, adj_get_nudge_micros(adj->bpm, adj_nudge_ms));
+                adj_one_beat_sleep(adj->bpm);
+                set_tempo(adj, adj->bpm);
+            }
+            adj_nudge_multiplier = 0;
+            adj_nudge_ms = 0;
             adj_nudge_exec = 0;
         } else {
-            nanosleep(&adj_pause, (struct timespec *)NULL);
+            usleep(100000);
         }
         if (adj_set_bpm > 0) {
             set_tempo(adj, adj_set_bpm);
@@ -241,12 +281,12 @@ static void* main_loop(void* arg)
     snd_seq_queue_status_malloc(&info);
     snd_seq_get_queue_status(adj->alsa_seq, adj->q, info);
     snprintf(buf, 160, "%i", snd_seq_queue_status_get_events(info));
-    adj->data_change_handler(ADJ_ITEM_EVENTS, buf);
+    adj->data_change_handler(adj, ADJ_ITEM_EVENTS, buf);
 
     // start the midi clock loop
     adj_running = 1;
     adj_paused = 1;
-    adj->data_change_handler(ADJ_ITEM_STATE_SEQ, "running");
+    adj->data_change_handler(adj, ADJ_ITEM_STATE_SEQ, "running");
 
     init_nudge(adj);
 
@@ -267,19 +307,22 @@ static void* main_loop(void* arg)
             }
             was_paused = 1;
             if ( ! adj_running ) goto quit;
-            nanosleep(&adj_pause, (struct timespec *)NULL);
+            usleep(10000);
         }
 
         if (was_paused) {
+            pthread_mutex_lock(&adj_sync_mutex);
+            pthread_mutex_unlock(&adj_sync_mutex);
             was_paused = 0;
             adj->tick = ADJ_TICK0;
             midi_start(adj);
         }
         
+
         // send first clock _before_ tick_handler() which may be slow, handler has 1/24th of a beat to finish
         send_midi_clock(adj, adj_next_tick(adj));
  
-        adj->tick_handler(adj->tick);
+        adj->tick_handler(adj, adj->tick);
 
         for (i = 1 ; i < ADJ_CLOCKS_PER_BEAT * ADJ_BEATS_QUEUED; i++) {
             send_midi_clock(adj, adj_next_tick(adj));
@@ -395,23 +438,32 @@ void adj_nudge(adj_seq_info_t* adj, int multiplier)
     adj_nudge_multiplier = multiplier;
     adj_nudge_exec = 1;
 
-    if (multiplier > 10)   adj->data_change_handler(ADJ_ITEM_OP, "  nudge ^");
-    if (multiplier > 0)    adj->data_change_handler(ADJ_ITEM_OP, "  nudge >");
-    if (multiplier < 0)    adj->data_change_handler(ADJ_ITEM_OP, "< nudge ");
-    if (multiplier < -10)  adj->data_change_handler(ADJ_ITEM_OP, "v nudge ");
+    if (multiplier > 10)   adj->data_change_handler(adj, ADJ_ITEM_OP, "  nudge ^");
+    if (multiplier > 0)    adj->data_change_handler(adj, ADJ_ITEM_OP, "  nudge >");
+    if (multiplier < 0)    adj->data_change_handler(adj, ADJ_ITEM_OP, "< nudge ");
+    if (multiplier < -10)  adj->data_change_handler(adj, ADJ_ITEM_OP, "v nudge ");
+}
+
+void adj_nudge_millis(adj_seq_info_t* adj, int millis)
+{
+    adj_nudge_ms = millis;
+    adj_nudge_exec = 1;
+
+    if (millis > 0) adj->data_change_handler(adj, ADJ_ITEM_OP, "  nudge >");
+    if (millis < 0) adj->data_change_handler(adj, ADJ_ITEM_OP, "< nudge ");
 }
 
 void adj_start(adj_seq_info_t* adj)
 {
-    adj->data_change_handler(ADJ_ITEM_OP, "start");
+    adj->data_change_handler(adj, ADJ_ITEM_OP, "start");
     // midi start is on the loop
     adj_paused = 0;
 }
 
 void adj_stop(adj_seq_info_t* adj)
 {
-    adj->data_change_handler(ADJ_ITEM_OP, "stop");
-    adj_paused = !adj_paused;
+    adj->data_change_handler(adj, ADJ_ITEM_OP, "stop");
+    adj_paused = 1;
 }
 
 void adj_toggle(adj_seq_info_t* adj)
@@ -423,18 +475,33 @@ void adj_toggle(adj_seq_info_t* adj)
     }
 }
 
+// restart in time to the playing loop (not perfect)
 void adj_quantized_restart(adj_seq_info_t* adj)
 {
     adj_q_restart = 1;
 }
 
+
+void adj_beat_lock(adj_seq_info_t* adj)
+{
+    adj_stop(adj);
+    pthread_mutex_lock(&adj_sync_mutex);
+    usleep(250000);
+    adj_start(adj);
+}
+
+void adj_beat_unlock(adj_seq_info_t* adj)
+{
+    pthread_mutex_unlock(&adj_sync_mutex);
+}
+
+
 int adj_exit(adj_seq_info_t* adj)
 {
-    adj->data_change_handler(ADJ_ITEM_STATE_SEQ, "exit");
+    adj->data_change_handler(adj, ADJ_ITEM_STATE_SEQ, "exit");
     int rv = adj_quit();
-    nanosleep(&adj_pause, (struct timespec *)NULL);
-    nanosleep(&adj_pause, (struct timespec *)NULL);
-    if (adj->exit_handler) adj->exit_handler();
+    usleep(500000);
+    if (adj->exit_handler) adj->exit_handler(adj);
     return rv;
 }
 
@@ -472,6 +539,8 @@ void adj_adjust_tempo(adj_seq_info_t* adj, float bpm_diff)
 
 // start util api
 
+//SNIP_utils
+
 unsigned int adj_bpm_to_micros(float bpm)
 {
     return (unsigned int) (60000000 / bpm);
@@ -486,10 +555,17 @@ struct timespec adj_one_beat_time(float bpm)
     return ts;
 }
 
+float adj_micros_to_bpm(unsigned int micros_per_beat)
+{
+    return 60 / (micros_per_beat / 1000000.0);
+}
+
 void adj_one_beat_sleep(float bpm)
 {
     struct timespec sl = adj_one_beat_time(bpm);
     nanosleep(&sl, (struct timespec*) NULL);
 }
+
+//SNIP_utils
 
 // end util api

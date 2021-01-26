@@ -33,6 +33,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
+#include <stdarg.h>
 
 #include <stdio.h>
 #include <termios.h>
@@ -170,6 +171,16 @@ void tui_error_at(char* string, int x, int y)
     free(new_string);
     fputs(TUI_NORMAL, stdout);
     fflush(stdout);
+}
+
+void tui_debug(const char* format, ...)
+{ 
+  va_list args;
+  tui_set_cursor_pos(0, 0);
+  va_start (args, format);
+  vprintf (format, args);
+  va_end (args);
+  fflush(stdout);
 }
 
 int tui_get_width()

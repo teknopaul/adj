@@ -131,11 +131,13 @@ static void* read_keys(void* arg)
                         case 'S':// F4
                             adj_copy_bpm(adj, 4);
                             continue;
+
                         default: 
                             continue;
                     }
-                } else if (ch == '\033'){ // Esc Esc  reset bpm entry
+                } else if (ch == '\033'){ // Esc Esc  reset bpm entry & turn of sync
                     reset_char_bpm();
+                    adj_vdj_difflock_arff(adj);
                 }
 
                 continue;
@@ -162,7 +164,34 @@ static void* read_keys(void* arg)
             } else if (ch == '-') {
                 adj_adjust_tempo(adj, -0.1);
 
-            } else if (ch == 'k') { // Unlike q the 'k' key is not near anything in use
+            } else if (ch == 'u') {
+                adj_vdj_trigger_from_player(adj, 1);
+            } else if (ch == 'i') {
+                adj_vdj_trigger_from_player(adj, 2);
+            } else if (ch == 'o') {
+                adj_vdj_trigger_from_player(adj, 3);
+            } else if (ch == 'p') {
+                adj_vdj_trigger_from_player(adj, 4);
+
+
+            } else if (ch == 'U') {
+                adj_vdj_difflock(adj, 1);
+            } else if (ch == 'I') {
+                adj_vdj_difflock(adj, 2);
+            } else if (ch == 'O') {
+                adj_vdj_difflock(adj, 3);
+            } else if (ch == 'P') {
+                adj_vdj_difflock(adj, 4);
+            } else if (ch == 0x3e) {
+                adj_vdj_difflock_nudge(adj, 1);
+            } else if (ch == 0x3c) {
+                adj_vdj_difflock_nudge(adj, -1);
+            } else if (ch == 'V') {
+                adj_vdj_difflock_nudge(adj, 1);
+            } else if (ch == 'X') {
+                adj_vdj_difflock_nudge(adj, -1);
+
+            } else if (ch == 'K') { 
                 // quit process, stops all synths
                 adj_exit(adj);
             } else if (ch == '.' || (ch >= '0' && ch <= '9')) {
@@ -170,6 +199,7 @@ static void* read_keys(void* arg)
                     float bpm = get_bpm();
                     if (bpm > 0) {
                         adj_set_tempo(adj, bpm);
+                        adj_vdj_difflock_arff(adj);
                     }
                     reset_char_bpm();
                 }

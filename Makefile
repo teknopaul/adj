@@ -3,6 +3,7 @@ CC = gcc
 CFLAGS = -Wall -Werror -Wno-format-security -fPIC -g -O3
 
 INCS = -Isrc
+# pkg install libasound2-dev
 LIBS = -lasound -lpthread
 VJDLIBS = -lvdj -lcdj
 ADJDEPS = src/adj.h src/adj_keyb.h src/adj_midiin.h src/tui.h src/adj_vdj.h
@@ -69,8 +70,8 @@ clean:
 
 install:
 	install -s -v -o root -m 777 target/amidiclock $(DESTDIR)/usr/bin/
-	install -v -o root -m 777 target/adj        $(DESTDIR)/usr/bin/
-	install -v -o root -m 644 target/libadj.so  $(DESTDIR)/usr/lib/x86_64-linux-gnu/
+	install -v -o root -m 777 target/adj           $(DESTDIR)/usr/bin/
+	install -v -o root -m 644 target/libadj.so     $(DESTDIR)/usr/lib/x86_64-linux-gnu/
 	cp -rv etc/* $(DESTDIR)/etc/
 
 uninstall:

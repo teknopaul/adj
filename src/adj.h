@@ -17,15 +17,18 @@
 #define ADJ_BEATS_PER_BAR       4     // used by quantized restart, you can stil beat sync other time signatures
 //SNIP_adjh_constants
 
-// ui callbacks
-typedef void (*adj_message_handler_pt)(char* message);
-typedef void (*adj_data_change_handler_pt)(int item, char* data);
-typedef void (*adj_tick_handler_pt)(snd_seq_tick_time_t tick);
-typedef void (*adj_stop_handler_pt)();
-typedef void (*adj_start_handler_pt)();
-typedef void (*adj_exit_handler_pt)();
+typedef struct adj_seq_info_s adj_seq_info_t;
 
-typedef struct {
+// ui callbacks
+typedef void (*adj_message_handler_pt)(adj_seq_info_t* adj, char* message);
+typedef void (*adj_data_change_handler_pt)(adj_seq_info_t* adj, int item, char* data);
+typedef void (*adj_tick_handler_pt)(adj_seq_info_t* adj, snd_seq_tick_time_t tick);
+typedef void (*adj_beat_handler_pt)(adj_seq_info_t* adj, unsigned char player_id);
+typedef void (*adj_stop_handler_pt)(adj_seq_info_t* adj);
+typedef void (*adj_start_handler_pt)(adj_seq_info_t* adj);
+typedef void (*adj_exit_handler_pt)(adj_seq_info_t* adj);
+
+struct adj_seq_info_s {
     char*       seq_name;
     int         client_id;
     snd_seq_t*  alsa_seq;
@@ -38,10 +41,11 @@ typedef struct {
     adj_message_handler_pt      message_handler;
     adj_data_change_handler_pt  data_change_handler;
     adj_tick_handler_pt         tick_handler;
+    adj_beat_handler_pt         beat_handler;
     adj_stop_handler_pt         stop_handler;
     adj_start_handler_pt        start_handler;
     adj_exit_handler_pt         exit_handler;
-} adj_seq_info_t;
+};
 
 //SNIP_adjh_constants
 #define ADJ_OK                  0  // return code for succes
@@ -66,9 +70,11 @@ typedef struct {
 #define ADJ_ITEM_BPM        0x08
 #define ADJ_ITEM_EVENTS     0x09
 #define ADJ_ITEM_OP         0x0A
+#define ADJ_ITEM_DIFFLOCK   0x0B  // locked bpm to external player, aka sync
 
 //SNIP_adjh_constants
 
+extern char tui; // 1 if using fancy console
 
 // start public api
 
@@ -96,6 +102,12 @@ int adj_init(adj_seq_info_t* adj);
 void adj_nudge(adj_seq_info_t* adj, int multiplier);
 
 /**
+ * Nudge by a specific amount of milliseconds, designed for auto correction, so adj_nudge() takes precidence 
+ * as it is designed for human interaction
+ */
+void adj_nudge_millis(adj_seq_info_t* adj, int milliseconds);
+
+/**
  * Start the queue again from midi tick 0, this should only be called after adj_stop()
  */ 
 void adj_start(adj_seq_info_t* adj);
@@ -111,9 +123,18 @@ void adj_stop(adj_seq_info_t* adj);
 void adj_toggle(adj_seq_info_t* adj);
 
 /**
- * Waits for the end of the bar then does stop/start. this enables correcting the phrase when the beats are already in sync
+ * Waits for the end of the bar then does stop/start.
+ * This enables correcting the phrase when the beats are already in sync. 
  */
 void adj_quantized_restart(adj_seq_info_t* adj);
+
+/**
+ * Beat lock and unlock lock a pthread mutex so the main loop is paused and when unlocks a midi start occurs.
+ * this is not beat syncing this for quantized restart in time to an external clock (i.e. CDJs).
+ * The thread that calls unlock must be the same thread that calls lock.
+ */
+void adj_beat_lock(adj_seq_info_t* adj);
+void adj_beat_unlock(adj_seq_info_t* adj);
 
 /**
  * Exit the main loop, this is not immediate.
@@ -138,8 +159,10 @@ unsigned _Atomic adj_is_paused();
 
 /**
  * Change the tempo, N.B. not pitch change, or time-strech, for midi this is speed change.
+ * 
  */
 void adj_adjust_tempo(adj_seq_info_t* adj, float bpm_diff);
+
 /**
  * Sets the tempo of a running queue.
  * to set the bpm edit the value of adj->bpm before calling init
@@ -150,8 +173,19 @@ void adj_set_tempo(adj_seq_info_t* adj, float bpm);
 
 // start util api
 
+/**
+ * duration of one beat in microseconds at the supplied bpm.
+ */
 unsigned int adj_bpm_to_micros(float bpm);
 
+/**
+ * returns bpm given tempo in microseconds per beat.
+ */
+float adj_micros_to_bpm(unsigned int micros_per_beat);
+
+/**
+ * duration of one beat at the supplied bpm as a timespec, i.e. nanosecond resolution
+ */
 struct timespec adj_one_beat_time(float bpm);
 
 /**
