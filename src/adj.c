@@ -321,6 +321,7 @@ int main(int argc, char* argv[])
             if (!iface) iface = conf->vdj_iface;
             vdj_offset = conf->vdj_offset;
             keyb_input = conf->keyb_in;
+            adj->alsa_sync = conf->alsa_sync;
         }
     }
 

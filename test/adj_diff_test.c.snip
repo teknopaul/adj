@@ -1,0 +1,33 @@
+
+//SNIP_FILE SNIP_adjh_constants  ../src/adj.h
+
+#include "snip_core.h"
+
+
+// test the whole file
+#include "../src/adj_diff.c"
+
+int main(int argc , char* argv[]) 
+{
+    uint8_t player_id = 1;
+
+    adj_diff_reset();
+    snip_assert("adj_diff_get empty", adj_diff_get(player_id) == 0);
+    snip_assert("adj_diff_avg empty", adj_diff_get(player_id) == 0);
+    adj_diff_add(player_id, 10);
+    snip_assert("adj_diff_get empty", adj_diff_avg(player_id) == 0);
+    adj_diff_add(player_id, 20);
+    snip_assert("adj_diff_get empty", adj_diff_avg(player_id) == 0);
+    adj_diff_add(player_id, 10);
+    snip_assert("adj_diff_get empty", adj_diff_avg(player_id) == 0);
+    adj_diff_add(player_id, 20);
+    snip_assert("adj_diff_get avg", adj_diff_avg(player_id) == 15);
+    snip_assert("adj_diff_get last", adj_diff_get(player_id) == 20);
+
+    adj_diff_add(32, 20);
+    snip_assert("adj_diff_get limit", adj_diff_get(32) == 20);
+    adj_diff_add(33, 20);
+    snip_assert("adj_diff_get out of range", adj_diff_get(33) == 0);
+    return 0;
+}
+

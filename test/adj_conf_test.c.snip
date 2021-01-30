@@ -18,7 +18,7 @@ int main(int argc , char* argv[])
     adj_conf* conf = adj_parse(in);
 
     snip_assert("alsa_name", strcmp(conf->alsa_name, "adj") == 0 );
-    snip_assert("alsa_sync", ! conf->alsa_sync );
+    snip_assert("alsa_sync", conf->alsa_sync );
     snip_assert("keyb_in", conf->keyb_in );
     snip_assert("midi_in", strcmp(conf->midi_in, "nanoKONTROL Studio:nanoKONTROL Studio MIDI 1") == 0 );
     snip_assert("midi_out", strcmp(conf->midi_out, "TR-6S:TR-6S MIDI 1    ") == 0 );

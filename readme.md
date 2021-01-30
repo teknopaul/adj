@@ -2,18 +2,18 @@
 
 # Alsa DJ
 
-Beat-mixing midi instruments on Linux.
+Beat-mixing midi instruments and CDJs on Linux.
 
-I write this to enable mixing a Roland TR-6s drum machine with a vinyl set.  a.k.a. dex, fx & 909.  The TR-6s has controls to stop start and tempo adjust, but not with enough precision to beat-mix a drum track on to a whole playing record.  A midi controller or usb keyboard can be used to avoid having your laptop front and center.
+I write this to enable mixing a Roland TR-6s drum machine with a vinyl set.  a.k.a. dex, fx & 909.  The TR-6s has controls to stop, start and tempo adjust, but not with enough precision to beat-mix a drum track onto a playing record.  A midi controller or usb keyboard can be used to avoid having your laptop front and center.
 
 ## Features
 
 - Cueing midi instruments, i.e. start / stop
 - Nudging, i.e. speeding up or slowing down temporarily to catch up with a different track.
-- Keeping time with Pioneer CDJs, (using [libcdj](https://github.com/teknopaul/libcdj))
 - Tempo adjust (ala pitch control)
+- - Keeping time with Pioneer CDJs, (using [libcdj](https://github.com/teknopaul/libcdj))
 - Quantized restart, jump the midi device to the start of it sequence on the next beat.
-- Setting tempo to a precise value e.g. 123.00 bpm
+- Setting tempo to a precise value e.g. 123.04 bpm
 - Light on CPU and RAM
 - Sexy console UI
 - Pluggable UI hooks
@@ -26,14 +26,16 @@ I write this to enable mixing a Roland TR-6s drum machine with a vinyl set.  a.k
 
 ## Build the binary
 
-	git clone https://gitlab.com/teknopaul/libcdj
+    git clone https://gitlab.com/teknopaul/libcdj
     (cd libcdj; make; sudo make install)
 
-	sudo apt install libasound2-dev
-	git clone https://gitlab.com/teknopaul/adj
-	(cd adj; make; sudo make install)
+    sudo apt install libasound2-dev
+    git clone https://gitlab.com/teknopaul/adj
+    (cd adj; make; sudo make install)
 
-make deb requires dpkg build tools, `make test` requires `sniprun`. Output is just a copul of files if you wnat to packge for other distros.
+`make deb` requires dpkg build tools, `make test` requires `sniprun`. Output is just a couple of files if you want to package for other distros.
+
+Also builds on a [raspbery pi](https://www.raspberrypi.org/) model B with 500mb of RAM running raspbian. No need to cross compile, just install `gcc` and build tools.
 
 ## Overview/Usage
 
@@ -246,16 +248,24 @@ Well, it's midi so pretty much compatible with any device, to map your controlle
 ## Audio latency
 
 - This is midi toy, so there is no audio buffering, alsa seems to keep perfect time but takes significantly longer than 10ms to stop / start.
-- The control loops (currently) have a resolution of 1/4 of a beat for the keyboard input, which is not sufficient to punch the first beat of a drum machine like you might with an MPC, its sufficient for beat mixing tho.  
 - Midi controllers have no delay (technically `snd_seq_event_input()` in blocking mode has some latency but its not noticeable)
 - Quantized restart has a noticeable `50ms` latency not sure if its alsa or my midi devices I'm testing with. Fixed with a nudge.
-- Quantized loop restarting seems to work better with alsa sync (`-y`),
+- Quantized loop restarting seems to work better with alsa sync (`-y`).
 - Some future version may implement times that attempt to predict alsa restart latency, its technically possible but fiddly.
 - `libadj` is written in C and CPU usage on my laptop is minimal, even when running it uses less CPU than many idle applications.
+- syncing based on the apparition of UDP packets on the network naturally has latency involved.
+- My XDJs mk1s cant keep time to millisecond resolution, maybe newer devices can.
 
 ## Bugs
 
-via gitlab if you find something.
+via github if you find something.
+packet timing is ~20ms off not sure if this is libdj or CDJs themselves.
+
+## Status
+
+Basics tested on a single machine. Very much in development, API is not stable yet.
+
+
 
 ## Author
 

@@ -9,7 +9,7 @@ VJDLIBS = -lvdj -lcdj
 ADJDEPS = src/adj.h src/adj_keyb.h src/adj_midiin.h src/tui.h src/adj_vdj.h
 ADJSRC = src/adj.c src/adj_keyb.c src/adj_vdj.c src/adj_midiin.c src/tui.c
 
-OBJS = target/adj_keyb.o target/adj_midiin.o target/adj_vdj.o target/tui.o target/adj_conf.o
+OBJS = target/adj_diff.o target/adj_keyb.o target/adj_midiin.o target/adj_vdj.o target/tui.o target/adj_conf.o
 
 all: target target/amidiclock $(OBJS) target/libadj.so  target/libadj.a target/adj target/adj_midilearn
 
@@ -59,6 +59,8 @@ target/adj_midiin.o: src/adj_midiin.c src/adj_midiin.h
 target/adj_conf.o: src/adj_conf.c src/adj_conf.h
 	$(CC) $(CFLAGS) -c -o $@ src/adj_conf.c $(LIBS)
 
+target/adj_diff.o: src/adj_diff.c src/adj_diff.h
+	$(CC) $(CFLAGS) -c -o $@ src/adj_diff.c $(LIBS)
 
 .PHONY: clean install uninstall deb test
 

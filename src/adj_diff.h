@@ -1,7 +1,7 @@
 #ifndef _ADJ_DIFF_INCLUDED_
 #define _ADJ_DIFF_INCLUDED_
 
-#define AVG_SIZE      4    // size of our rolling average
+#define AVG_SIZE      8    // size of our rolling average
 #define DIFF_LIMIT    20   // dont report diffs over this size for auto-nudge
 
 /**

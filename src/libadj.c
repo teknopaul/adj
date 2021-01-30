@@ -270,7 +270,7 @@ static void adj_loop_sleep(double bpm, int drop_ticks)
 
 static void* main_loop(void* arg)
 {
-    int i, b = 1;
+    int i;
     char buf[161];
 
     adj_seq_info_t* adj = arg;
@@ -340,7 +340,6 @@ static void* main_loop(void* arg)
 
             // potentially drop ticks to catch up 
             adj_loop_sleep(adj->bpm, (int) (ADJ_CLOCKS_PER_BEAT * ADJ_BEATS_QUEUED) - events);
-            b++;
         }
 
     }
