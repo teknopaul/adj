@@ -1,0 +1,33 @@
+
+//SNIP_FILE SNIP_adjh_constants  ../src/adj.h
+
+#include "snip_core.h"
+
+
+// test the whole file
+#include "../src/adj_conf.c"
+
+int main(int argc , char* argv[]) 
+{
+
+    int in = open("../etc/adj.conf", O_RDONLY);
+    if ( in == -1 ) {
+        fprintf(stderr, "cannot open ../etc/adj.conf\n");
+        return 1;
+    }
+    adj_conf* conf = adj_parse(in);
+
+    snip_assert("alsa_name", strcmp(conf->alsa_name, "adj") == 0 );
+    snip_assert("alsa_sync", ! conf->alsa_sync );
+    snip_assert("keyb_in", conf->keyb_in );
+    snip_assert("midi_in", strcmp(conf->midi_in, "nanoKONTROL Studio:nanoKONTROL Studio MIDI 1") == 0 );
+    snip_assert("midi_out", strcmp(conf->midi_out, "TR-6S:TR-6S MIDI 1    ") == 0 );
+    snip_assert("bpm", conf->bpm == 120.0 );
+    snip_assert("vdj", conf->vdj );
+    snip_assert("vdj_iface", strcmp(conf->vdj_iface, "enp0s31f6") == 0 );
+    snip_assert("vdj_player", conf->vdj_player == 0 );
+    snip_assert("vdj_offset", conf->vdj_offset == 20 );
+
+    return 0;
+}
+

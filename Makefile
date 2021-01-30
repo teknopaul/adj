@@ -9,7 +9,7 @@ VJDLIBS = -lvdj -lcdj
 ADJDEPS = src/adj.h src/adj_keyb.h src/adj_midiin.h src/tui.h src/adj_vdj.h
 ADJSRC = src/adj.c src/adj_keyb.c src/adj_vdj.c src/adj_midiin.c src/tui.c
 
-OBJS = target/adj_keyb.o target/adj_midiin.o target/adj_vdj.o target/tui.o
+OBJS = target/adj_keyb.o target/adj_midiin.o target/adj_vdj.o target/tui.o target/adj_conf.o
 
 all: target target/amidiclock $(OBJS) target/libadj.so  target/libadj.a target/adj target/adj_midilearn
 
@@ -56,14 +56,18 @@ target/adj_keyb.o: src/adj_keyb.c src/adj_keyb.h
 target/adj_midiin.o: src/adj_midiin.c src/adj_midiin.h
 	$(CC) $(CFLAGS) -c -o $@ src/adj_midiin.c $(LIBS)
 
+target/adj_conf.o: src/adj_conf.c src/adj_conf.h
+	$(CC) $(CFLAGS) -c -o $@ src/adj_conf.c $(LIBS)
+
 
 .PHONY: clean install uninstall deb test
 
 test:
-	cd test; sniprun adj_keyb_bpm_test.c.snip
-	cd test; sniprun amidiclock_test.c.snip
-	cd test; sniprun adj_midiin_test.c.snip
-	cd test; sniprun adj_vdj_test.c.snip
+	sniprun test/adj_conf_test.c.snip
+	sniprun test/adj_keyb_bpm_test.c.snip
+	sniprun test/amidiclock_test.c.snip
+	sniprun test/adj_midiin_test.c.snip
+	sniprun test/adj_vdj_test.c.snip
 
 clean:
 	rm -rf target/

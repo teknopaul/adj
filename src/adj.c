@@ -22,6 +22,7 @@
 #include "adj.h"
 #include "adj_keyb.h"
 #include "adj_midiin.h"
+#include "adj_conf.h"
 #include "adj_vdj.h"
 #include "tui.h"
 
@@ -39,7 +40,9 @@ static void usage()
     printf("    -y - use alsa sync feature\n");
     printf("    -k - keyboard input\n");
     printf("    -i - aconnect a midi port to adj for midi control input, (check /etc/adj-midimap.adjm)\n");
-    printf("    -v - connect as a Virtual CD to Pioneer decks\n");
+    printf("    -v - connect as a Virtual CDJ to Pioneer decks\n");
+    printf("    -N - NIC for Virtual CDJ\n");
+    printf("    -c - read config from /etc/adj.conf\n");
     printf("    -h - display this text\n");
     exit(0);
 }
@@ -247,6 +250,9 @@ int main(int argc, char* argv[])
     char* in_port_name = NULL;
     char auto_start = 0;
     char vdj = 0;
+    char* iface = NULL;
+    uint32_t vdj_offset = 20; // works on my machine
+    char read_config = 0;
     uint32_t vdj_flags = VDJ_FLAG_DEV_XDJ | VDJ_FLAG_AUTO_ID;
     unsigned int enter_toggles = 0;
     vdj_t* v;
@@ -261,7 +267,7 @@ int main(int argc, char* argv[])
     // parse command line
 
     int c;
-    while ( ( c = getopt(argc, argv, "b:n:p:i:heykav") ) != EOF) {
+    while ( ( c = getopt(argc, argv, "b:n:N:p:i:heykvac") ) != EOF) {
         switch (c) {
             case 'h':
                 usage();
@@ -278,6 +284,9 @@ int main(int argc, char* argv[])
             case 'n': 
                 adj->seq_name = optarg;
                 break;
+            case 'N': 
+                iface = optarg;
+                break;
             case 'y': 
                 adj->alsa_sync = 1;
                 break;
@@ -293,6 +302,25 @@ int main(int argc, char* argv[])
             case 'e': 
                 enter_toggles = 1;
                 break;
+            case 'c': 
+                read_config = 1;
+                break;
+        }
+    }
+
+    if (argc == 1) read_config = 1;
+
+    if (read_config) {
+        adj_conf* conf = adj_conf_init();
+        if (conf) {
+            if (!out_port_name) out_port_name = conf->midi_out;
+            if (!in_port_name) in_port_name = conf->midi_in;
+            vdj = conf->vdj;
+            vdj_flags |= conf->vdj_player;
+            if (adj->bpm == 120.0) adj->bpm = conf->bpm;
+            if (!iface) iface = conf->vdj_iface;
+            vdj_offset = conf->vdj_offset;
+            keyb_input = conf->keyb_in;
         }
     }
 
@@ -360,7 +388,7 @@ int main(int argc, char* argv[])
     }
 
     if (vdj) {
-        if ( ! (v = adj_init_vdj(adj, NULL, vdj_flags, adj->bpm)) ) {
+        if ( ! (v = adj_init_vdj(adj, iface, vdj_flags, adj->bpm, vdj_offset)) ) {
             init_error_i("error: vdj start failed: %i\n", 0);
             signal_exit(0);
             return 1;
@@ -374,8 +402,6 @@ int main(int argc, char* argv[])
         init_error_i("error: sequencer start failed: %i\n", rv);
         signal_exit(0);
         return 1;
-    } else {
-
     }
 
     sched_yield();

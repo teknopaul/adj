@@ -33,6 +33,9 @@ static void init_term()
     tcsetattr(0, TCSANOW, &new_term);
 }
 
+
+static int difflock_master = 0;
+
 //SNIP_set_bpm
 
 // ability to set bpm with the keyb
@@ -43,10 +46,21 @@ static void init_term()
 static char new_bpm[7] ;
 static int new_bpm_pos = 0;
 
+static int setting_bpm = 0;      // 'b' was pressed
+static int copying_bpm = 0;      // 'c' was pressed
+static int setting_difflock = 0; // 'l' was pressed
+static int setting_default_difflock = 0;     // 'd' was pressed
+static int setting_trigger = 0;  // 't' was pressed
+
 static void reset_char_bpm()
 {
     new_bpm_pos = 0;
     memset(new_bpm, 0 , 7);
+    setting_bpm = 0;
+    copying_bpm = 0;
+    setting_difflock = 0;
+    setting_default_difflock = 0;
+    setting_trigger = 0;
 }
 
 static int add_char_bpm(char next)
@@ -175,13 +189,13 @@ static void* read_keys(void* arg)
 
 
             } else if (ch == 'U') {
-                adj_vdj_difflock(adj, 1);
+                adj_vdj_difflock(adj, 1, 0);
             } else if (ch == 'I') {
-                adj_vdj_difflock(adj, 2);
+                adj_vdj_difflock(adj, 2, 0);
             } else if (ch == 'O') {
-                adj_vdj_difflock(adj, 3);
+                adj_vdj_difflock(adj, 3, 0);
             } else if (ch == 'P') {
-                adj_vdj_difflock(adj, 4);
+                adj_vdj_difflock(adj, 4, 0);
             } else if (ch == 0x3e) {
                 adj_vdj_difflock_nudge(adj, 1);
             } else if (ch == 0x3c) {
@@ -191,17 +205,48 @@ static void* read_keys(void* arg)
             } else if (ch == 'X') {
                 adj_vdj_difflock_nudge(adj, -1);
 
+            } else if (ch == 'M') {
+                adj_vdj_difflock_master(adj, difflock_master = !difflock_master );
+
             } else if (ch == 'K') { 
                 // quit process, stops all synths
                 adj_exit(adj);
+            } else if (ch == 'b') {
+                setting_bpm = 1;
+                continue;
+            } else if (ch == 'c') {
+                copying_bpm = 1;
+                continue;
+            } else if (ch == 'l') {
+                setting_difflock = 1;
+                continue;
+            } else if (ch == 'd') {
+                setting_default_difflock = 1;
+                continue;
             } else if (ch == '.' || (ch >= '0' && ch <= '9')) {
-                if (add_char_bpm(ch)) {
-                    float bpm = get_bpm();
-                    if (bpm > 0) {
-                        adj_set_tempo(adj, bpm);
-                        adj_vdj_difflock_arff(adj);
+                if (setting_bpm) {
+                    if (add_char_bpm(ch)) {
+                        float bpm = get_bpm();
+                        if (bpm > 0) {
+                            adj_set_tempo(adj, bpm);
+                            adj_vdj_difflock_arff(adj);
+                        }
+                        reset_char_bpm();
                     }
-                    reset_char_bpm();
+                }
+                uint8_t player_id = (uint8_t)(ch - '0');
+                if (copying_bpm) {
+                    adj_copy_bpm(adj, player_id);
+                    adj_vdj_difflock_arff(adj);
+                }
+                else if (setting_difflock) {
+                    adj_vdj_difflock(adj, player_id, 0);
+                }
+                else if (setting_default_difflock) {
+                    adj_vdj_difflock(adj, player_id, 1);
+                }
+                else if (setting_trigger) {
+                    adj_vdj_trigger_from_player(adj, player_id);
                 }
                 continue;
             } else {

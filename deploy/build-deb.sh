@@ -7,7 +7,7 @@ test $(id -u) == "0" || (echo "Run as root" && exit 1) # requires bash -e
 #
 # The package name
 #
-name=amidiclock
+name=adj
 arch=$(uname -m)
 
 cd $(dirname $0)/..
@@ -18,9 +18,11 @@ project_root=$PWD
 #
 tmp_dir=/tmp/$name-debbuild
 rm -rf $tmp_dir
-mkdir -p $tmp_dir/DEBIAN $tmp_dir/usr/bin
+mkdir -p $tmp_dir/DEBIAN $tmp_dir/usr/bin $tmp_dir/usr/lib/x86_64-linux-gnu $tmp_dir/etc
 
-cp --archive -R target/amidiclock $tmp_dir/usr/bin
+cp --archive target/adj $tmp_dir/usr/bin
+cp --archive target/libadj.so $tmp_dir/usr/lib/x86_64-linux-gnu
+cp --archive etc/* $tmp_dir/etc
 
 size=$(du -sk $tmp_dir | cut -f 1)
 
@@ -41,12 +43,14 @@ cp --archive -R $project_root/deploy/DEBIAN/p* $tmp_dir/DEBIAN
 #
 # Setup the installation package ownership here if it needs root
 #
-chown root.root $tmp_dir/usr/bin/* 
+chown root.root $tmp_dir/usr/bin/*  $tmp_dir/usr/lib/x86_64-linux-gnu/*
+chmod 755 $tmp_dir/usr/bin/*
+chmod 644 $tmp_dir/usr/lib/x86_64-linux-gnu/*
+
 
 #
 # Build the .deb
 #
-mkdir -p target/
 dpkg-deb --build $tmp_dir target/$name-$VERSION-1.$arch.deb
 
 test -f target/$name-$VERSION-1.$arch.deb

@@ -10,7 +10,7 @@ I write this to enable mixing a Roland TR-6s drum machine with a vinyl set.  a.k
 
 - Cueing midi instruments, i.e. start / stop
 - Nudging, i.e. speeding up or slowing down temporarily to catch up with a different track.
-- Keeping time with Pioneer CDJs, (using libdj)
+- Keeping time with Pioneer CDJs, (using [libcdj](https://github.com/teknopaul/libcdj))
 - Tempo adjust (ala pitch control)
 - Quantized restart, jump the midi device to the start of it sequence on the next beat.
 - Setting tempo to a precise value e.g. 123.00 bpm
@@ -97,6 +97,16 @@ The `-v`  option creates a virtual CDJ device in software that can communicate w
 
 ![adj with vdj integration](doc/screen-ani.gif)
 
+`adj` does not auto-sync, you have to nudge the midi into time with the CDJs.  The difference between midi beat and the CDJ beat is listed per deck, the deck must be playing and in sync to within half a beat to track the diff.
+
+
+    model:  [XDJ-1000    ] [XDJ-1000    ] [Alsa VDJ    ] [            ]
+    player: [01 ▶️ ⚪🔴🔊 ] [02 ⏸️ ⚪⚪🔊 ] [03          ] [            ]
+    bpm:    [120.01  ___♪] [000.00      ] [03      _♪__] [04          ]
+    diff:   [+025        ] [            ] [            ] [            ]
+    master: [01] [--] [----]
+
+Once the midi and a CDJ is synchronized you can lock the midi sequencer to the beat of the deck, I find diff is usually around `+20` when the midi sequence and the CDJ are in sync. Typing `shift` + `U`, `I` ,`O` or `P` locks the midi sequence to the relevant player (1 to 4), this means `adj` keeps the diff the same by auto nudging the required number of milliseconds on the last beat of the bar.  N.B. this sounds real screwy if the BPMs are not more or less the same (use `F1` to `F4` to copy bpm first).  
 
 
 ## Midi Mixing
@@ -116,7 +126,7 @@ If you have more money than sense you can use a CDJ to control `adj`, since Pion
 
 ### Tempo vs Pitch
 
-There is no pitch adjust just tempo adjust, i.e. faster or slower. This is kind of like having the "master tempo" button always pressed on a CDJ. There is no need to time-strech this makes missing subtly different since Humans are tuned to pick up on very small frequency changes, and its more difficult to pick up on duration changes, there is nothing to go on until the beat sounds.
+There is no pitch adjust just tempo adjust, i.e. faster or slower. This is kind of like having the "master tempo" button always pressed on a CDJ. There is no need to time-stretch this makes mixing subtly different since humans are tuned to pick up on very small frequency changes, and its more difficult to pick up on duration changes, there is nothing to go on until the beat sounds.
 Tempo changes do not have a noticeable slide like pushing a vinyl record, that good for the audience but more complicated for the DJ since humans are highly tuned to picking up minor variation in pitch. It takes a bit of getting used to if you mix vinyl, its the same as learning to mix Pioneer CDJs with master tempo set.
 
 You can assign a midi slider to the pitch but it does not work like a Technics slider.
@@ -124,41 +134,47 @@ You can assign a midi slider to the pitch but it does not work like a Technics s
 - you cannot query a midi controller to find out in which position the slider is now, all you get is change notifications.
 - so we can use a slider to adjust tempo faster and slower like a CDJ only if the slider is in the middle position when the instrument starts.
 - to make up for this you can turn the slider on and off to be able to reset its position.
-- the result of this is that the slider is not limited to +/-8 it can be used to increment the BPM indefinaitely in 0.1 bpm step, no more hitting the end of the pitch adjust slider.
+- the result of this is that the slider is not limited to +/-8 it can be used to increment the BPM indefinitely in 0.1 bpm steps, no more hitting the end of the pitch adjust slider.
 - however it is more fiddly to make big bpm adjustments compared to Technics.
+- N.B. Pioneer CDJs are limited to +/- 100%, `adj` has no such limitation since there is no base bpm, but clearly you cant keep them in time if the CDJ hits its limit.
 
-Naturally, `adj` holds its tempo pretty well, compared to Technics.
+Naturally, `adj` holds its tempo pretty well, compared to Technics, and CDJs which surprisingly do tend to drift as they try to keep in sync across the network.
 
 I had to make a decisions about resolution of the controls and the nudge amounts.  Too small changes and you have to nudge more often, too large and its not possible to perfectly sync.  I have presumed BPM around 120, if you are typically mixing Gabba at 220 BPM you might find the controls a little too precise, if you play stoner jazz at 60 bpm a little to lax.  Nudging is performed by increasing the tempo by 1 or 2 bpm for a single beat.  Hack at the code if that's an issue.
 
 
 ## UI
 
-UI is a console afair. `libdj` is designed to support other UIs, so I might write a QT or GTK front end one day.   It not really necessary tho since input is performed with a physical midi controller (or pc keyboard) and the output is audio not the monitor., A fancy GUI does not add much benefit.
+UI is a console afair. `libdj` is designed to support other UIs, so I might write a QT or GTK front end one day.   It not really necessary tho since input is performed with a physical midi controller (or pc keyboard) and the output is audio not the monitor. A fancy GUI does not add much benefit.
 
 
 ## The UI shows 
 
 - Connected midi devices
 - Current bpm
-- Loop position, presuming you are mixing 4/4 music with a drum machine or groove box or similar
+- Loop position, presuming you are mixing 4/4 music with a drum machine or groove box or similar.
 - Some visual feed back for nudging, naturally you will more likely be paying attention to your headphone monitor.
 - Indicators for start stop of the alsa sequencer, its possible to disconnect your devices, so its useful sometime to what is running and what is stopped.
 - A bit of feed back regarding fiddling with the slider, phase, pitch adjust.
 
-    alsa port:   [adj:clock]
-    client_id:   [128:0]
-    midi in:     [nanoKONTROL Studio:nanoKONTROL Studio MIDI 1]
-    midi out:    [TR-6S:TR-6S MIDI 1    ]
-    keyb:        [on]
-    seq state:   [exit     ]
-    q state:     [paused   ]
-    bpm:         [120.00000]
-    events:      [0        ]
-    op:          [stop     ]
+
+.
+
+
+    alsa port:   [adj:clock]  
+    client_id:   [128:0]  
+    midi in:     [nanoKONTROL Studio:nanoKONTROL Studio MIDI 1]  
+    midi out:    [TR-6S:TR-6S MIDI 1    ]  
+    keyb:        [on]  
+    seq state:   [exit     ]  
+    q state:     [paused   ]  
+    bpm:         [120.00000]  
+    events:      [0        ]  
+    op:          [stop     ]  
 
 
     |...:...:...:...|...:...:...:...|...:...:...:...|...:...:...:...|
+
 
 If `stdout` is not a tty, output is simply the timeline, e.g. if you pipe to `cat`
 
@@ -167,6 +183,7 @@ If `stdout` is not a tty, output is simply the timeline, e.g. if you pipe to `ca
 all you see is the beat and phrase points
 
     |...:...:...:...|...:...:...:...|...:...:...:...|
+
 
 ## Keyboard control
 
@@ -185,7 +202,7 @@ Type the bpm to two decimpal places to set the value, no need to press enter.
 You get less control over tempo with the calculator style keyboard.
 
 
-## Midi Compatability
+## Midi Compatibility
 
 Well, it's midi so pretty much compatible with any device, to map your controller to the actions in `adj` you need to setup `/etc/adj-midimap.adjmm` which is a symlink to a text file that maps events to midi control messages.  There not too much to setup to manually create the file, however `adj_midilearn`  can be used to help create the mapping file by punching buttons and twiddling knobs.
 
@@ -228,12 +245,12 @@ Well, it's midi so pretty much compatible with any device, to map your controlle
 
 ## Audio latency
 
-- This is midi toy, so there is no audio buffering, its a computer so there must be some latency but I have not noticed an issue.
+- This is midi toy, so there is no audio buffering, alsa seems to keep perfect time but takes significantly longer than 10ms to stop / start.
 - The control loops (currently) have a resolution of 1/4 of a beat for the keyboard input, which is not sufficient to punch the first beat of a drum machine like you might with an MPC, its sufficient for beat mixing tho.  
-Midi controllers have no delay (technically `snd_seq_event_input()` in blocking mode has some latency but its not noticeable)
+- Midi controllers have no delay (technically `snd_seq_event_input()` in blocking mode has some latency but its not noticeable)
 - Quantized restart has a noticeable `50ms` latency not sure if its alsa or my midi devices I'm testing with. Fixed with a nudge.
 - Quantized loop restarting seems to work better with alsa sync (`-y`),
-- Since you can drop the track and then nudge, it matters little if it comes in a few ticks late you can adjust before the mix.
+- Some future version may implement times that attempt to predict alsa restart latency, its technically possible but fiddly.
 - `libadj` is written in C and CPU usage on my laptop is minimal, even when running it uses less CPU than many idle applications.
 
 ## Bugs

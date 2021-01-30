@@ -1,4 +1,4 @@
-Package: usbkbd2
+Package: adj
 Version: @PACKAGE_VERSION@
 Section: 
 Priority: optional
@@ -12,8 +12,8 @@ Installed-Size: @SIZE@
 Maintainer: teknopaul [teknopaul@tp23.org]
 Conflicts: 
 Replaces: 
-Provides: usbkbd2
-Description: Converts old USB keyboards into midi keyboards
+Provides: adj
+Description: Alsa DJ tools for midi and CDJ/XDJ players
 
 
 

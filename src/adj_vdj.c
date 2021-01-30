@@ -8,17 +8,25 @@
 #include <cdj/vdj.h>
 #include <cdj/vdj_net.h>
 #include <cdj/vdj_discovery.h>
+#include <cdj/vdj_pselect.h>
 
 #include "adj.h"
 #include "adj_vdj.h"
 #include "tui.h"
 
+/**
+ * Code for becoming a Virtual CDJ and talking to Pioneer CDJs. 
+ * This has mashed up tui code and VDJ handlers tui can be turned off but not easily replace with a GUI.
+ * TODO separate code and use handlers for all ui updates
+ */
+
 static void adj_vdj_lock_on(vdj_t* v);
 static void adj_vdj_lock_off(vdj_t* v);
-static void adj_vdj_beat_hook(vdj_t* v, unsigned char player_id);
+static void adj_vdj_beat_hook(vdj_t* v, uint8_t player_id);
 
-static unsigned _Atomic adj_trigger_from = ATOMIC_VAR_INIT(0);
-static unsigned _Atomic adj_lock_on = ATOMIC_VAR_INIT(0);
+static unsigned _Atomic adj_trigger_from = ATOMIC_VAR_INIT(0);    
+static unsigned _Atomic adj_lock_on = ATOMIC_VAR_INIT(0);         // trigger lock, sync to downbeat
+static unsigned _Atomic adj_difflock_master = ATOMIC_VAR_INIT(0); // swap difflock when master changes
 
 //SNIP_adj_vdj_tui
 
@@ -35,19 +43,23 @@ static void render_slot(int id);
 static int rendered_self = 0;
 
 // players with player_id > 4 e.g. rekordbox get mapped to a lower id so they fit on screen.
-unsigned char next_slot = 5;
-unsigned char high_slots[VDJ_MAX_BACKLINE];
+uint8_t next_slot = 5;
+uint8_t high_slots[VDJ_MAX_BACKLINE];
 // keep track of time differences between our midi sequencer and the CDJs.
 // not real time, we keep diffs and this encorporates network and player latency
 int32_t diffs[VDJ_MAX_BACKLINE];
 
-// difflock aka auto-cync, this holds the player_id we should lock to
+// difflock aka auto-sync, this holds the player_id we should lock to
 static unsigned _Atomic difflock_player = ATOMIC_VAR_INIT(0);
-// this hold the milliseconds difference we want to maintain
+// this holds the milliseconds difference we want to maintain
 int32_t difflock_ms = 0;
+// default difflock ms offset
+int32_t difflock_default = 0;
+// our notion of master, so we can detect change
+uint8_t master = 0;
 
-static unsigned char
-get_slot(unsigned char player_id)
+static uint8_t
+get_slot(uint8_t player_id)
 {
     if (player_id > MAX_PLAYERS) {
         if ( ! high_slots[player_id] ){
@@ -130,7 +142,11 @@ render_lock(int id, int32_t diff)
 {
     if (tui) {
         tui_set_cursor_pos(15, BACKLINE_Y);
-        if (id) {
+        if (id == 0) {
+            printf("[--] [----]");
+        } else if (difflock_player && adj_difflock_master && id) {
+            printf("[%s%02i%s] [%+04i]", TUI_RED, id, TUI_NORMAL, diff);
+        } else if (difflock_player && id) {
             printf("[%s%02i%s] [%+04i]", TUI_YELLOW, id, TUI_NORMAL, diff);
         } else {
             printf("[--] [----]");
@@ -150,7 +166,7 @@ render_lock_amount(int32_t amount)
 }
 
 static void
-render_bar_pos(unsigned char id, unsigned char bar_pos)
+render_bar_pos(uint8_t id, uint8_t bar_pos)
 {
     if (tui) {
         tui_set_cursor_pos(slot_x(id) + 8 + 1, BACKLINE_Y + Y_BPM);
@@ -191,68 +207,75 @@ render_backline()
 
 //SNIP_adj_vdj_tui
 
-static void
-adj_discovery_handler(vdj_t* v, unsigned char* packet, uint16_t len)
+/**
+ * Limit the amount we nudge in one beat, seems sometimes beats are delayed
+ */
+static int32_t
+auto_nudge_amount(int32_t diff, int32_t difflock_ms)
 {
-    cdj_discovery_packet_t* d_pkt;
-    if (cdj_packet_type(packet, len) == CDJ_KEEP_ALIVE) {
-        d_pkt = cdj_new_discovery_packet(packet, len);
-        if ( d_pkt ) {
-            if (d_pkt->player_id && v->backline->link_members[d_pkt->player_id]) {
-                char* model = cdj_model_name(packet, len, CDJ_DISCOVERY_PORT);
-                if (model) {
-                    tui_lock();
-                    render_model(get_slot(d_pkt->player_id), model, 0);
-                    tui_unlock();
-                    free(model);
-                }
-
-            }
-            if (d_pkt->player_id == v->player_id) {
-                if (!rendered_self) {
-                    tui_lock();
-                    render_model(get_slot(d_pkt->player_id), "Alsa VDJ", 1); // even if pretending to be a CDJ or XDJ
-                    tui_unlock();
-                    rendered_self = 1;
-                }
-            }
-        }
-
-        if (d_pkt) free(d_pkt);
-    }
+    int32_t nudge = diff - difflock_ms;
+    if (nudge < -20) nudge = -20;
+    if (nudge > 20) nudge = 20;
+    tui_lock();
+    tui_debug("  nudge amount %+04i", nudge);
+    tui_unlock();
+    return nudge;
 }
 
 static void
-adj_update_handler(vdj_t* v, unsigned char* packet, uint16_t len)
+adj_discovery_ph(vdj_t* v, cdj_discovery_packet_t* d_pkt)
 {
-    unsigned char slot;
-    vdj_link_member_t* m;
-    unsigned char flags;
-    cdj_cdj_status_packet_t* cs_pkt = cdj_new_cdj_status_packet(packet, len);
-    if ( cs_pkt ) {
-        if ( cs_pkt->player_id ) {
-            if ( (m = v->backline->link_members[cs_pkt->player_id]) ) {
-                flags = cdj_status_flags(cs_pkt);
-                char* status = cdj_flags_to_emoji(flags);
+    if (d_pkt->type == CDJ_KEEP_ALIVE) {
+        if (d_pkt->player_id && v->backline->link_members[d_pkt->player_id]) {
+            tui_lock();
+            render_model(get_slot(d_pkt->player_id), cdj_discovery_model(d_pkt), 0);
+            tui_unlock();
+        }
+        if (d_pkt->player_id == v->player_id) {
+            if (!rendered_self) {
                 tui_lock();
-                slot = get_slot(cs_pkt->player_id);
-                render_bpm(slot, m->bpm);
-                if (flags & CDJ_STAT_FLAG_MASTER) {
-                    render_master(cs_pkt->player_id);
-                }
-                render_status(slot, status);
+                render_model(get_slot(d_pkt->player_id), "Alsa VDJ", 1); // even if pretending to be a CDJ or XDJ
                 tui_unlock();
-                free(status);
+                rendered_self = 1;
             }
         }
-        free(cs_pkt);
     }
 }
 
 static void
-adj_broadcast_handler(vdj_t* v, unsigned char* packet, uint16_t len)
+adj_update_ph(vdj_t* v, cdj_cdj_status_packet_t* cs_pkt)
 {
-    unsigned char slot;
+    uint8_t slot;
+    vdj_link_member_t* m;
+    uint8_t flags;
+    if ( cs_pkt->player_id ) {
+        if ( (m = vdj_get_link_member(v, cs_pkt->player_id)) ) {
+            flags = cdj_status_flags(cs_pkt);
+            char* status = cdj_flags_to_emoji(flags);
+            tui_lock();
+            slot = get_slot(cs_pkt->player_id);
+            render_bpm(slot, m->bpm);
+            if (flags & CDJ_STAT_FLAG_MASTER) {
+                if (master != cs_pkt->player_id) {
+                    // change of master
+                    render_master(cs_pkt->player_id);
+                    master = cs_pkt->player_id;
+                    if (adj_difflock_master) {
+                        difflock_player = master;
+                    }
+                }
+            }
+            render_status(slot, status);
+            tui_unlock();
+            free(status);
+        }
+    }
+}
+
+static void
+adj_beat_ph(vdj_t* v, cdj_beat_packet_t* b_pkt)
+{
+    uint8_t slot;
     int64_t diff;
     vdj_link_member_t* m;
 
@@ -260,36 +283,31 @@ adj_broadcast_handler(vdj_t* v, unsigned char* packet, uint16_t len)
         adj_vdj_lock_on(v);
     }
 
-    cdj_beat_packet_t* b_pkt = cdj_new_beat_packet(packet, len);
-    if ( b_pkt ) {
-        if ( b_pkt->player_id ) {
-            if ( (m = v->backline->link_members[b_pkt->player_id]) ) {
-                adj_vdj_beat_hook(v, b_pkt->player_id);
-                diff = vdj_time_diff(v, m);
-                tui_lock();
-                slot = get_slot(b_pkt->player_id);
-                render_bpm(slot, b_pkt->bpm);
-                render_bar_pos(slot, b_pkt->bar_pos);
-                // if you are behind, render on your beat, (if you are ahead render on our beat)
-                if (diff > 0) {
-                    render_diff(slot, diff);
-                    diffs[b_pkt->player_id] = diff;
-                }
-                tui_unlock();
+    if ( (m = vdj_get_link_member(v, b_pkt->player_id)) ) {
+        adj_vdj_beat_hook(v, b_pkt->player_id);
+        diff = vdj_time_diff(v, m);
+        slot = get_slot(b_pkt->player_id);
+        tui_lock();
+        render_bpm(slot, b_pkt->bpm);
+        render_bar_pos(slot, b_pkt->bar_pos);
+        // if you are behind, render on your beat, (if you are ahead render on our beat)
+        if (diff > 0) {
+            render_diff(slot, diff);
+            diffs[b_pkt->player_id] = diff;
+        }
+        tui_unlock();
 
-                // trigger from OR beat lock not both
-                if (adj_trigger_from) {
-                    if (adj_trigger_from == b_pkt->player_id && b_pkt->bar_pos == 1) {
-                        adj_vdj_lock_off(v);
-                    }
-                } else if (difflock_player == b_pkt->player_id && b_pkt->bar_pos == 4) {
-                    if (diff - difflock_ms) {
-                        adj_nudge_millis((adj_seq_info_t*) v->client, diff - difflock_ms);
-                    }
-                }
+        // trigger from OR beat lock not both
+        if (adj_trigger_from) {
+            if (adj_trigger_from == b_pkt->player_id && b_pkt->bar_pos == 1) {
+                adj_vdj_lock_off(v);
+            }
+        // auto nudge 
+        } else if (difflock_player == b_pkt->player_id && b_pkt->bar_pos == 4) {
+            if (diff - difflock_ms) {
+                adj_nudge_millis((adj_seq_info_t*) v->client, auto_nudge_amount(diff, difflock_ms));
             }
         }
-        free(b_pkt);
     }
 
 }
@@ -298,11 +316,13 @@ adj_broadcast_handler(vdj_t* v, unsigned char* packet, uint16_t len)
  * Virtual CDJ application entry point.
  */
 vdj_t*
-adj_init_vdj(adj_seq_info_t* adj, char* iface, uint32_t flags, float bpm)
+adj_init_vdj(adj_seq_info_t* adj, char* iface, uint32_t flags, float bpm, uint32_t vdj_offset)
 {
 
     memset(high_slots, 0, VDJ_MAX_BACKLINE);
     memset(diffs, 0, MAX_PLAYERS);
+
+    difflock_default = vdj_offset;
 
     /**
      * init the vdj
@@ -330,40 +350,20 @@ adj_init_vdj(adj_seq_info_t* adj, char* iface, uint32_t flags, float bpm)
         return NULL;
     }
 
-    if ( vdj_init_managed_discovery_thread(v, adj_discovery_handler) != CDJ_OK ) {
-        fprintf(stderr, "error: init managed discovery thread\n");
-        sleep(1);
+    if (vdj_pselect_init(v, adj_discovery_ph, NULL, adj_beat_ph, NULL, adj_update_ph ) != CDJ_OK) {
+        fprintf(stderr, "error: cdj pselect\n");
+        vdj_pselect_stop(v);
+        usleep(200000);
         vdj_destroy(v);
         return NULL;
-    }
-
-    if ( vdj_init_managed_update_thread(v, adj_update_handler) != CDJ_OK ) {
-        fprintf(stderr, "error: init managed status thread\n");
-        sleep(1);
-        vdj_destroy(v);
-        return NULL;
-    }
-
-    if ( vdj_init_managegd_broadcast_thread(v, adj_broadcast_handler) != CDJ_OK ) {
-        fprintf(stderr, "error: init managed braodcast thread\n");
-        sleep(1);
-        vdj_destroy(v);
-        return NULL;
-    }
-
-    if ( vdj_init_status_thread(v) != CDJ_OK ) {
-        fprintf(stderr, "error: init status thread\n");
-        sleep(1);
-        vdj_destroy(v);
-        return NULL;
-    }
+    } 
 
     v->client = adj;
     return v;
 }
 
 void
-adj_copy_bpm(adj_seq_info_t* adj, unsigned char player_id)
+adj_copy_bpm(adj_seq_info_t* adj, uint8_t player_id)
 {
     vdj_link_member_t* m;
     if (adj->vdj && adj->vdj->backline) {
@@ -409,7 +409,7 @@ adj_vdj_set_bpm(adj_seq_info_t* adj, float bpm)
  * inform CDJ players of a beat from the alsa sequencer
  */
 void
-adj_vdj_beat(adj_seq_info_t* adj, unsigned char bar_pos)
+adj_vdj_beat(adj_seq_info_t* adj, uint8_t bar_pos)
 {
     vdj_link_member_t* m;
     int64_t diff;
@@ -441,7 +441,7 @@ adj_vdj_beat(adj_seq_info_t* adj, unsigned char bar_pos)
  * inform AlsaDJ about a beat on a CDJ player
  */
 static void
-adj_vdj_beat_hook(vdj_t* v, unsigned char player_id)
+adj_vdj_beat_hook(vdj_t* v, uint8_t player_id)
 {
     if (v->client) {
         adj_seq_info_t* adj = (adj_seq_info_t*) v->client;
@@ -458,7 +458,7 @@ adj_vdj_beat_hook(vdj_t* v, unsigned char player_id)
 // the state requried via atomics to the broadcast handlers (which it trigger by beats)
 // N.B. this is far from in time to the beat
 void
-adj_vdj_trigger_from_player(adj_seq_info_t* adj, unsigned char player_id)
+adj_vdj_trigger_from_player(adj_seq_info_t* adj, uint8_t player_id)
 {
     adj_trigger_from = player_id;
 }
@@ -482,7 +482,7 @@ adj_vdj_lock_off(vdj_t* v)
     if (adj_lock_on) {
         //tui_debug("lockoff");
         adj_lock_on = 0;
-        unsigned char trigger_from_player = adj_trigger_from;
+        uint8_t trigger_from_player = adj_trigger_from;
         adj_trigger_from = 0;
         adj_seq_info_t* adj = (adj_seq_info_t*)v->client;
 
@@ -494,11 +494,21 @@ adj_vdj_lock_off(vdj_t* v)
     }
 }
 
+// difflock , keep the offset between midi and CDJs in sync.
+// something similar to what deep symetry call "degraded sync"
+
 void
-adj_vdj_difflock(adj_seq_info_t* adj, unsigned char player_id)
+adj_vdj_difflock(adj_seq_info_t* adj, uint8_t player_id, int use_default)
 {
     difflock_player = player_id;
-    difflock_ms = diffs[player_id];
+    if (use_default) {
+        difflock_ms = difflock_default;
+    } else {
+        difflock_ms = diffs[player_id];
+    }
+
+    // if explicit lock against not master, stop follow master
+    if (master != player_id) adj_difflock_master = 0;
 
     switch(player_id) {
         case 1 : adj->data_change_handler(adj, ADJ_ITEM_DIFFLOCK, "01");
@@ -530,4 +540,10 @@ adj_vdj_difflock_nudge(adj_seq_info_t* adj, int32_t amount)
     tui_lock();
     render_lock_amount(difflock_ms);
     tui_unlock();
+}
+
+void
+adj_vdj_difflock_master(adj_seq_info_t* adj, int on_off)
+{
+    adj_difflock_master = on_off;
 }
