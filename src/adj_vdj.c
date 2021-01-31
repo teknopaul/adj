@@ -9,6 +9,7 @@
 #include <cdj/vdj_net.h>
 #include <cdj/vdj_discovery.h>
 #include <cdj/vdj_pselect.h>
+#include <cdj/vdj_master.h>
 
 #include "adj.h"
 #include "adj_diff.h"
@@ -319,7 +320,7 @@ adj_beat_ph(vdj_t* v, cdj_beat_packet_t* b_pkt)
  * Virtual CDJ application entry point.
  */
 vdj_t*
-adj_init_vdj(adj_seq_info_t* adj, char* iface, uint32_t flags, float bpm, uint32_t vdj_offset)
+adj_vdj_init(adj_seq_info_t* adj, char* iface, uint32_t flags, float bpm, uint32_t vdj_offset)
 {
 
     memset(high_slots, 0, VDJ_MAX_BACKLINE);
@@ -365,34 +366,60 @@ adj_init_vdj(adj_seq_info_t* adj, char* iface, uint32_t flags, float bpm, uint32
 }
 
 void
-adj_copy_bpm(adj_seq_info_t* adj, uint8_t player_id)
+adj_vdj_copy_bpm(adj_seq_info_t* adj, uint8_t player_id)
 {
     vdj_link_member_t* m;
     if (adj->vdj && adj->vdj->backline) {
         if ( (m = vdj_get_link_member(adj->vdj, player_id))) {
             if (m->bpm >= ADJ_MIN_BPM && m->bpm <= ADJ_MAX_BPM) {
                 adj_set_tempo(adj, m->bpm);
+                return;
             }
         }
     }
 }
 
-void
-adj_set_playing(adj_seq_info_t* adj, int playing)
+uint8_t
+adj_vdj_copy_master(adj_seq_info_t* adj)
 {
-    if (playing) {
-        adj->vdj->master_state |=  CDJ_STAT_FLAG_PLAY;
-        adj->vdj->master_state |=  CDJ_STAT_FLAG_ONAIR;
-        adj->vdj->active = 1;
-    } else {
-        adj->vdj->master_state ^=  CDJ_STAT_FLAG_PLAY;
-        adj->vdj->master_state ^=  CDJ_STAT_FLAG_ONAIR;
-        adj->vdj->active = 0;
+
+    vdj_link_member_t* m;
+
+    if (master && adj->vdj && adj->vdj->backline) {
+        if ( (m = vdj_get_link_member(adj->vdj, master))) {
+            adj_set_tempo(adj, m->bpm);
+            return master;
+        }
     }
+    return 0;
+}
+
+uint8_t
+adj_vdj_copy_other(adj_seq_info_t* adj)
+{
+    uint8_t i;
+    vdj_link_member_t* m;
+
+    if (adj->vdj && adj->vdj->backline) {
+        for (i = 1; i <= MAX_PLAYERS; i++) {
+            if (i == master || i == adj->vdj->player_id) continue;
+            if ( (m = vdj_get_link_member(adj->vdj, i))) {
+                adj_set_tempo(adj, m->bpm);
+                return i;
+            }
+        }
+    }
+    return 0;
 }
 
 void
-adj_set_sync(adj_seq_info_t* adj, int sync)
+adj_vdj_set_playing(adj_seq_info_t* adj, int playing)
+{
+    vdj_set_playing(adj->vdj, playing);
+}
+
+void
+adj_vdj_set_sync(adj_seq_info_t* adj, int sync)
 {
     if (sync) {
         adj->vdj->master_state |=  CDJ_STAT_FLAG_SYNC;
@@ -413,17 +440,18 @@ adj_vdj_set_bpm(adj_seq_info_t* adj, float bpm)
 void
 adj_vdj_beat(adj_seq_info_t* adj, uint8_t bar_pos)
 {
+    int i;
     vdj_link_member_t* m;
     int64_t diff;
     vdj_t* v = adj->vdj;
 
-    vdj_broadcast_beat(v, bar_pos); // sets v->last_beat as a side effect, TODO bad practice?
+    vdj_broadcast_beat(v, adj->bpm, bar_pos); // sets v->last_beat as a side effect, TODO bad practice?
     tui_lock();
     render_bar_pos(get_slot(v->player_id), bar_pos);
 
     // dont calculate beat diffs if we are nanging ona time jump
     if (! adj_trigger_from) {
-        for (int i = 1; i <= MAX_PLAYERS; i++) {
+        for (i = 1; i <= MAX_PLAYERS; i++) {
             if (i == v->player_id) continue;
             m = vdj_get_link_member(v, i);
             if (m) {
@@ -502,6 +530,10 @@ adj_vdj_lock_off(vdj_t* v)
 void
 adj_vdj_difflock(adj_seq_info_t* adj, uint8_t player_id, int use_default)
 {
+    if (!vdj_get_link_member(adj->vdj, player_id)) {
+        return;
+    }
+
     difflock_player = player_id;
     if (use_default) {
         difflock_ms = difflock_default;
@@ -548,4 +580,10 @@ void
 adj_vdj_difflock_master(adj_seq_info_t* adj, int on_off)
 {
     adj_difflock_master = on_off;
+}
+
+void
+adj_vdj_become_master(adj_seq_info_t* adj)
+{
+    vdj_request_master(adj->vdj);
 }

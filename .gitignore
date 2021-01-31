@@ -4,3 +4,4 @@ target/
 keyb2midi
 .sublime-workspace
 doc-internal/
+adj.log

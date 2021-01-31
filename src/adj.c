@@ -39,6 +39,7 @@ static void usage()
     printf("    -n - change the name of the sequencer in alsa (default 'adj')\n");
     printf("    -y - use alsa sync feature\n");
     printf("    -k - keyboard input\n");
+    printf("    -K - numpad input\n");
     printf("    -i - aconnect a midi port to adj for midi control input, (check /etc/adj-midimap.adjm)\n");
     printf("    -v - connect as a Virtual CDJ to Pioneer decks\n");
     printf("    -N - NIC for Virtual CDJ\n");
@@ -52,6 +53,7 @@ static void usage()
 
 char tui = 0;
 static char keyb_input = 0;
+static char numpad_input = 0;
 static int message_ticks = 0;
 
 
@@ -235,10 +237,12 @@ static void stop_handler(adj_seq_info_t* adj)
         tui_unlock();
     }
     else puts("");
+    if (adj->vdj) adj_vdj_set_playing(adj, 0);
 }
 static void start_handler(adj_seq_info_t* adj)
 {
     //if (tui) tui_text_at("|...:...:...:...|...:...:...:...|...:...:...:...|...:...:...:...|", 2, 1);
+    if (adj->vdj) adj_vdj_set_playing(adj, 1);
 }
 
 int main(int argc, char* argv[])
@@ -267,7 +271,7 @@ int main(int argc, char* argv[])
     // parse command line
 
     int c;
-    while ( ( c = getopt(argc, argv, "b:n:N:p:i:heykvac") ) != EOF) {
+    while ( ( c = getopt(argc, argv, "b:n:N:p:i:heykKvac") ) != EOF) {
         switch (c) {
             case 'h':
                 usage();
@@ -292,6 +296,9 @@ int main(int argc, char* argv[])
                 break;
             case 'k': 
                 keyb_input = 1;
+                break;
+            case 'K': 
+                numpad_input = 1;
                 break;
             case 'a': 
                 auto_start = 1;
@@ -321,9 +328,12 @@ int main(int argc, char* argv[])
             if (!iface) iface = conf->vdj_iface;
             vdj_offset = conf->vdj_offset;
             keyb_input = conf->keyb_in;
+            numpad_input = conf->numpad_in;
             adj->alsa_sync = conf->alsa_sync;
         }
     }
+
+    if (numpad_input) keyb_input = 0;
 
     if ( isatty(STDOUT_FILENO) ) {
         tui = 1;
@@ -389,7 +399,7 @@ int main(int argc, char* argv[])
     }
 
     if (vdj) {
-        if ( ! (v = adj_init_vdj(adj, iface, vdj_flags, adj->bpm, vdj_offset)) ) {
+        if ( ! (v = adj_vdj_init(adj, iface, vdj_flags, adj->bpm, vdj_offset)) ) {
             init_error_i("error: vdj start failed: %i\n", 0);
             signal_exit(0);
             return 1;

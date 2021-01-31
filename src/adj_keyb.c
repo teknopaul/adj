@@ -134,16 +134,16 @@ static void* read_keys(void* arg)
                     ch = getchar();
                     switch(ch) {
                         case 'P':// F1
-                            adj_copy_bpm(adj, 1);
+                            adj_vdj_copy_bpm(adj, 1);
                             continue;
                         case 'Q':// F2
-                            adj_copy_bpm(adj, 2);
+                            adj_vdj_copy_bpm(adj, 2);
                             continue;
                         case 'R': // F3
-                            adj_copy_bpm(adj, 3);
+                            adj_vdj_copy_bpm(adj, 3);
                             continue;
                         case 'S':// F4
-                            adj_copy_bpm(adj, 4);
+                            adj_vdj_copy_bpm(adj, 4);
                             continue;
 
                         default: 
@@ -206,7 +206,10 @@ static void* read_keys(void* arg)
                 adj_vdj_difflock_nudge(adj, -1);
 
             } else if (ch == 'M') {
-                adj_vdj_difflock_master(adj, difflock_master = !difflock_master );
+                adj_vdj_difflock_master(adj, difflock_master = !difflock_master);
+
+            } else if (ch == 'B') {
+                adj_vdj_become_master(adj);
 
             } else if (ch == 'K') { 
                 // quit process, stops all synths
@@ -236,7 +239,7 @@ static void* read_keys(void* arg)
                 }
                 uint8_t player_id = (uint8_t)(ch - '0');
                 if (copying_bpm) {
-                    adj_copy_bpm(adj, player_id);
+                    adj_vdj_copy_bpm(adj, player_id);
                     adj_vdj_difflock_arff(adj);
                 }
                 else if (setting_difflock) {

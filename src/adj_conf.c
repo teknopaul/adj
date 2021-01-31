@@ -46,6 +46,9 @@ set(adj_conf* conf, char* name, char* value)
     else if (strcmp("keyb_in", name) == 0) {
         conf->keyb_in = ltrim(value)[0] == 't';
     }
+    else if (strcmp("numpad_in", name) == 0) {
+        conf->numpad_in = ltrim(value)[0] == 't';
+    }
     else if (strcmp("midi_in", name) == 0) {
         conf->midi_in = copy(ltrim(value));
     }

@@ -6,21 +6,34 @@
 
 #include "adj.h"
 
-vdj_t* adj_init_vdj(adj_seq_info_t* adj, char* iface, uint32_t flags, float bpm, uint32_t vdj_offset);
+vdj_t* adj_vdj_init(adj_seq_info_t* adj, char* iface, uint32_t flags, float bpm, uint32_t vdj_offset);
 
 /**
  * Copy the bpm from a CDJ player to the alsa sequncer
  */
-void adj_copy_bpm(adj_seq_info_t* adj, uint8_t player_id);
+void adj_vdj_copy_bpm(adj_seq_info_t* adj, uint8_t player_id);
+
+/**
+ * Copy BPM from the master player,
+ * returns master id
+ */
+uint8_t adj_vdj_copy_master(adj_seq_info_t* adj);
+
+/**
+ * Copy BPM from the other player (presumes only two) if not,the lowest player_id is retgurned
+ * returns id used
+ */
+uint8_t adj_vdj_copy_other(adj_seq_info_t* adj);
+
 /**
  * indicate to other CDJs we are playing now
  */
-void adj_set_playing(adj_seq_info_t* adj, int playing);
+void adj_vdj_set_playing(adj_seq_info_t* adj, int playing);
 
 /**
  * indicate to other CDJs we have sync mode on (makes no difference but its visible in posh mixers)
  */
-void adj_set_sync(adj_seq_info_t* adj, int sync);
+void adj_vdj_set_sync(adj_seq_info_t* adj, int sync);
 
 /**
  * set the bpm in our virtual cdj, it will be forwarded in updates and beats.
@@ -63,5 +76,7 @@ void adj_vdj_difflock_nudge(adj_seq_info_t* adj, int32_t amount);
  */
 void adj_vdj_difflock_master(adj_seq_info_t* adj, int on_off);
 
+
+void adj_vdj_become_master(adj_seq_info_t* adj);
 
 #endif // _ADJ_VDJ_INCLUDED_

@@ -12,4 +12,4 @@ sudo make install
 sudo make uninstall
 sudo dpkg -i target/*.deb
 
-rm /var/tmp/vdj-player-id 
+rm -f /var/tmp/vdj-player-id 

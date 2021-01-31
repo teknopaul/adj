@@ -9,7 +9,7 @@ VJDLIBS = -lvdj -lcdj
 ADJDEPS = src/adj.h src/adj_keyb.h src/adj_midiin.h src/tui.h src/adj_vdj.h
 ADJSRC = src/adj.c src/adj_keyb.c src/adj_vdj.c src/adj_midiin.c src/tui.c
 
-OBJS = target/adj_diff.o target/adj_keyb.o target/adj_midiin.o target/adj_vdj.o target/tui.o target/adj_conf.o
+OBJS = target/adj_diff.o target/adj_numpad.o target/adj_keyb.o target/adj_midiin.o target/adj_vdj.o target/tui.o target/adj_conf.o
 
 all: target target/amidiclock $(OBJS) target/libadj.so  target/libadj.a target/adj target/adj_midilearn
 
@@ -52,6 +52,9 @@ target/adj_vdj.o: src/adj_vdj.c src/adj_vdj.h
 
 target/adj_keyb.o: src/adj_keyb.c src/adj_keyb.h
 	$(CC) $(CFLAGS) -c -o $@ src/adj_keyb.c $(LIBS)
+
+target/adj_numpad.o: src/adj_numpad.c src/adj_numpad.h
+	$(CC) $(CFLAGS) -c -o $@ src/adj_numpad.c $(LIBS)
 
 target/adj_midiin.o: src/adj_midiin.c src/adj_midiin.h
 	$(CC) $(CFLAGS) -c -o $@ src/adj_midiin.c $(LIBS)

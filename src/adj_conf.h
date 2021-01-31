@@ -7,6 +7,7 @@ struct adj_conf_s {
     char*       alsa_name;
     uint8_t     alsa_sync;
     uint8_t     keyb_in;
+    uint8_t     numpad_in;
     char*       midi_in;
     char*       midi_out;
     float       bpm;
