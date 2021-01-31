@@ -19,7 +19,6 @@ This is the original app, its been split to be more modular.
 #include <string.h>
 #include <unistd.h>
 #include <stdio.h>
-#include <linux/input.h>
 #include <sys/stat.h>
 #include <ctype.h>
 #include <signal.h>

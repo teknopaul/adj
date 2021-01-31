@@ -1,3 +1,10 @@
+arch != uname -m
+
+ifeq ($(arch),x86_64)
+  LIBDIR=/usr/lib/x86_64-linux-gnu
+else ifeq ($(arch),armv6l)
+  LIBDIR=/usr/lib
+endif
 
 CC = gcc
 CFLAGS = -Wall -Werror -Wno-format-security -fPIC -g -O3
@@ -11,15 +18,12 @@ ADJSRC = src/adj.c src/adj_keyb.c src/adj_vdj.c src/adj_midiin.c src/tui.c
 
 OBJS = target/adj_diff.o target/adj_numpad.o target/adj_keyb.o target/adj_midiin.o target/adj_vdj.o target/tui.o target/adj_conf.o
 
-all: target target/amidiclock $(OBJS) target/libadj.so  target/libadj.a target/adj target/adj_midilearn
+all: target $(OBJS) target/libadj.so  target/libadj.a target/adj target/adj_midilearn
 
 target:
 	mkdir -p target
 
 # Applications
-
-target/amidiclock: src/amidiclock.c
-	$(CC) $(CFLAGS) -o $@ src/amidiclock.c $(LIBS)
 
 target/adj: $(ADJDEPS) $(ADJSRC) $(OBJS) target/adj.o
 	$(CC) $(CFLAGS) -o $@ $(OBJS) target/adj.o -Ltarget $(LIBS) $(VJDLIBS) -ladj
@@ -70,7 +74,6 @@ target/adj_diff.o: src/adj_diff.c src/adj_diff.h
 test:
 	sniprun test/adj_conf_test.c.snip
 	sniprun test/adj_keyb_bpm_test.c.snip
-	sniprun test/amidiclock_test.c.snip
 	sniprun test/adj_midiin_test.c.snip
 	sniprun test/adj_vdj_test.c.snip
 
@@ -78,13 +81,12 @@ clean:
 	rm -rf target/
 
 install:
-	install -s -v -o root -m 777 target/amidiclock $(DESTDIR)/usr/bin/
 	install -v -o root -m 777 target/adj           $(DESTDIR)/usr/bin/
-	install -v -o root -m 644 target/libadj.so     $(DESTDIR)/usr/lib/x86_64-linux-gnu/
+	install -v -o root -m 644 target/libadj.so     $(DESTDIR)$(LIBDIR)
 	cp -rv etc/* $(DESTDIR)/etc/
 
 uninstall:
-	rm $(DESTDIR)/usr/bin/amidiclock $(DESTDIR)/usr/bin/adj $(DESTDIR)/usr/lib/x86_64-linux-gnu/libadj.so
+	rm $(DESTDIR)/usr/bin/adj $(DESTDIR)$(LIBDIR)/libadj.so
 
 deb:
 	sudo deploy/build-deb.sh
