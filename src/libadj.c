@@ -24,8 +24,6 @@ static unsigned _Atomic adj_running = ATOMIC_VAR_INIT(0);          // main loop 
 static unsigned _Atomic adj_paused = ATOMIC_VAR_INIT(0);           // alive but not making noises
 static unsigned _Atomic adj_q_restart = ATOMIC_VAR_INIT(0);        // lock to start the alsa sequencer again
 
-static pthread_mutex_t adj_sync_mutex = PTHREAD_MUTEX_INITIALIZER; // hang until we get a beat sync from an external device (e.g. CDJ)
-
 //noop handlers
 static void nop_message_handler(adj_seq_info_t* adj, char* message){}
 static void nop_data_change_handler(adj_seq_info_t* adj, int item, char* data){}
@@ -307,12 +305,11 @@ static void* main_loop(void* arg)
             }
             was_paused = 1;
             if ( ! adj_running ) goto quit;
+            // pause is a busy loop with 10ms wait
             usleep(10000);
         }
 
         if (was_paused) {
-            pthread_mutex_lock(&adj_sync_mutex);
-            pthread_mutex_unlock(&adj_sync_mutex);
             was_paused = 0;
             adj->tick = ADJ_TICK0;
             midi_start(adj);
@@ -484,14 +481,11 @@ void adj_quantized_restart(adj_seq_info_t* adj)
 void adj_beat_lock(adj_seq_info_t* adj)
 {
     adj_stop(adj);
-    pthread_mutex_lock(&adj_sync_mutex);
-    usleep(250000);
-    adj_start(adj);
 }
 
 void adj_beat_unlock(adj_seq_info_t* adj)
 {
-    pthread_mutex_unlock(&adj_sync_mutex);
+    adj_start(adj);
 }
 
 

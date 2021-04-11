@@ -11,13 +11,13 @@
 #include "adj_vdj.h"
 #include "tui.h"
 
+static unsigned _Atomic difflock_player = ATOMIC_VAR_INIT(0); 
 static unsigned _Atomic adj_difflock_master = ATOMIC_VAR_INIT(0); 
+static int tui = 0;
 
 //SNIP_FILE SNIP_adj_vdj_tui  ../src/adj_vdj.c
 
 #include "snip_core.h"
-
-char tui = 0;
 
 
 int main(int argc , char* argv[]) 

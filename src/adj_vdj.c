@@ -12,6 +12,7 @@
 #include <cdj/vdj_master.h>
 
 #include "adj.h"
+#include "adj_bpm.h"
 #include "adj_diff.h"
 #include "adj_vdj.h"
 #include "tui.h"
@@ -29,37 +30,48 @@ static void adj_vdj_beat_hook(vdj_t* v, uint8_t player_id);
 static unsigned _Atomic adj_trigger_from = ATOMIC_VAR_INIT(0);    
 static unsigned _Atomic adj_lock_on = ATOMIC_VAR_INIT(0);         // trigger lock, sync to downbeat
 static unsigned _Atomic adj_difflock_master = ATOMIC_VAR_INIT(0); // swap difflock when master changes
+static unsigned _Atomic adj_follow_tempo = ATOMIC_VAR_INIT(0);    // copy tempo changes from the followed deck
+static unsigned _Atomic adj_track_start = ATOMIC_VAR_INIT(0);     // set when we manually mark track start for bpm analysis
+
+
+// difflock aka auto-sync, this holds the player_id we should lock to
+static unsigned _Atomic difflock_player = ATOMIC_VAR_INIT(0);
+
+// this holds the milliseconds difference we want to maintain
+static int32_t difflock_ms = 0;
+
+// default difflock ms offset
+static int32_t difflock_default = 0;
+
+// our notion of master, so we can detect change
+static uint8_t master = 0;
+
+// our notion of bpm, so we can detect change
+static float bpm = 120.0;
+
+static int tui = 1;
 
 //SNIP_adj_vdj_tui
 
 #define MAX_PLAYERS     4
 #define BACKLINE_Y      15
 
-#define Y_MDL      4
-#define Y_PLR      3
-#define Y_BPM      2
-#define Y_DIF      1
+// UI offsets
+#define Y_MDL      4 // model
+#define Y_PLR      3 // player
+#define Y_BPM      2 // beats per minute
+#define Y_DIF      1 // difference in ms
 
 static void render_slot(int id);
 
 static int rendered_self = 0;
 
 // players with player_id > 4 e.g. rekordbox get mapped to a lower id so they fit on screen.
-uint8_t next_slot = 5;
-uint8_t high_slots[VDJ_MAX_BACKLINE];
+static uint8_t next_slot = 5;
+static uint8_t high_slots[VDJ_MAX_BACKLINE];
 
-// difflock aka auto-sync, this holds the player_id we should lock to
-static unsigned _Atomic difflock_player = ATOMIC_VAR_INIT(0);
 
-// this holds the milliseconds difference we want to maintain
-int32_t difflock_ms = 0;
-
-// default difflock ms offset
-int32_t difflock_default = 0;
-
-// our notion of master, so we can detect change
-uint8_t master = 0;
-
+// a slot is the column number of the CDJ info on screen
 static uint8_t
 get_slot(uint8_t player_id)
 {
@@ -124,6 +136,14 @@ render_bpm(int id, float bpm)
         tui_set_cursor_pos(slot_x(id) + 1, BACKLINE_Y + Y_BPM);
         printf("%06.2f", bpm);
         fflush(stdout);
+    }
+}
+
+static void
+render_bpm_estimate(int id, float bpm, float bpm_track)
+{
+    if (tui) {
+        tui_debug("bpm est. = %07.3f / %07.3f", bpm, bpm_track);
     }
 }
 
@@ -246,6 +266,7 @@ adj_discovery_ph(vdj_t* v, cdj_discovery_packet_t* d_pkt)
     }
 }
 
+// CDJ_UPDATE packet handler
 static void
 adj_update_ph(vdj_t* v, cdj_cdj_status_packet_t* cs_pkt)
 {
@@ -276,12 +297,23 @@ adj_update_ph(vdj_t* v, cdj_cdj_status_packet_t* cs_pkt)
     }
 }
 
+// CDJ_BEAT packet handler
 static void
 adj_beat_ph(vdj_t* v, cdj_beat_packet_t* b_pkt)
 {
     uint8_t slot;
     int32_t diff;
     vdj_link_member_t* m;
+    float est = 0.0, est_track = 0.0;
+
+    if (b_pkt->bar_pos == 1) {
+        est = adj_estimate_bpm(b_pkt->player_id, b_pkt->timestamp);
+        est_track = adj_estimate_bpm_track(b_pkt->player_id, b_pkt->timestamp);
+        if (adj_track_start == b_pkt->player_id) {
+            adj_estimate_bpm_track_init(b_pkt->player_id, b_pkt->timestamp);
+            adj_track_start = 0;
+        }
+    }
 
     if (adj_trigger_from > 0) {
         adj_vdj_lock_on(v);
@@ -293,6 +325,10 @@ adj_beat_ph(vdj_t* v, cdj_beat_packet_t* b_pkt)
         slot = get_slot(b_pkt->player_id);
         tui_lock();
         render_bpm(slot, b_pkt->bpm);
+        if (b_pkt->bar_pos == 1) {
+            render_bpm_estimate(b_pkt->player_id, est, est_track);
+        }
+
         render_bar_pos(slot, b_pkt->bar_pos);
         // if you are behind, render on your beat, (if you are ahead render on our beat)
         if (diff > 0) {
@@ -312,8 +348,11 @@ adj_beat_ph(vdj_t* v, cdj_beat_packet_t* b_pkt)
                 adj_nudge_millis((adj_seq_info_t*) v->client, auto_nudge_amount(difflock_player, difflock_ms));
             }
         }
+        if (difflock_player == b_pkt->player_id && adj_follow_tempo && bpm != b_pkt->bpm) {
+            bpm = b_pkt->bpm;
+            adj_set_tempo((adj_seq_info_t*) v->client, bpm);
+        }
     }
-
 }
 
 /**
@@ -326,6 +365,8 @@ adj_vdj_init(adj_seq_info_t* adj, char* iface, uint32_t flags, float bpm, uint32
     memset(high_slots, 0, VDJ_MAX_BACKLINE);
     adj_diff_reset();
     difflock_default = vdj_offset;
+    adj_estimate_bpm_init();
+    adj_lock_on = 0;
 
     /**
      * init the vdj
@@ -449,7 +490,7 @@ adj_vdj_beat(adj_seq_info_t* adj, uint8_t bar_pos)
     tui_lock();
     render_bar_pos(get_slot(v->player_id), bar_pos);
 
-    // dont calculate beat diffs if we are nanging ona time jump
+    // dont calculate beat diffs if we are hanging on a time jump
     if (! adj_trigger_from) {
         for (i = 1; i <= MAX_PLAYERS; i++) {
             if (i == v->player_id) continue;
@@ -485,12 +526,13 @@ adj_vdj_beat_hook(vdj_t* v, uint8_t player_id)
 // Beat locking - facility to pause the sequencer and restart it on the down beat of 
 // any one of the players, we dont have to follow master.
 // Calling out to adj MUST be done in the same thread so we have to pass 
-// the state requried via atomics to the broadcast handlers (which it trigger by beats)
+// the state required via atomics to the broadcast handlers (which it trigger by beats)
 // N.B. this is far from in time to the beat
 void
 adj_vdj_trigger_from_player(adj_seq_info_t* adj, uint8_t player_id)
 {
     adj_trigger_from = player_id;
+    //tui_debug("adj_trigger_from");
 }
 
 // ie freeze now,
@@ -501,7 +543,7 @@ adj_vdj_lock_on(vdj_t* v)
         adj_lock_on = 1;
         adj_seq_info_t* adj = (adj_seq_info_t*)v->client;
         adj_beat_lock(adj);
-        //tui_debug("lockon");
+        adj->data_change_handler(adj, ADJ_ITEM_OP, "lockon");
     }
 }
 
@@ -510,15 +552,13 @@ static void
 adj_vdj_lock_off(vdj_t* v)
 {
     if (adj_lock_on) {
-        //tui_debug("lockoff");
         adj_lock_on = 0;
-        uint8_t trigger_from_player = adj_trigger_from;
-        adj_trigger_from = 0;
         adj_seq_info_t* adj = (adj_seq_info_t*)v->client;
 
-        // if we have to be behind to drop on time, we can delay
-        int32_t diff = adj_diff_get(trigger_from_player);
-        if (diff < 0 ) usleep(diff * 1000);
+        // TODO if we have to be behind to drop on time, we can delay
+        //int32_t diff = adj_diff_get(adj_trigger_from);
+        //if (diff > 0) usleep(diff * 1000);
+        adj_trigger_from = 0;
         // TODO how to come in early
         adj_beat_unlock(adj);
     }
@@ -565,6 +605,8 @@ adj_vdj_difflock_arff(adj_seq_info_t* adj)
     tui_lock();
     render_lock(0, 0);
     tui_unlock();
+    adj_diff_reset();
+    adj_estimate_bpm_init();
 }
 
 void
@@ -583,7 +625,20 @@ adj_vdj_difflock_master(adj_seq_info_t* adj, int on_off)
 }
 
 void
+adj_vdj_follow_tempo(adj_seq_info_t* adj, int on_off)
+{
+    adj_follow_tempo = on_off;
+}
+
+void
 adj_vdj_become_master(adj_seq_info_t* adj)
 {
     vdj_request_master(adj->vdj);
+}
+
+
+void
+adj_vdj_track_start(adj_seq_info_t* adj, uint8_t player_id)
+{
+    adj_track_start = player_id;
 }

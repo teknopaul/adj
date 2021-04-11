@@ -1,8 +1,10 @@
 arch != uname -m
 
 ifeq ($(arch),x86_64)
-  LIBDIR=/usr/lib/x86_64-linux-gnu
+  LIBDIR=/usr/lib
 else ifeq ($(arch),armv6l)
+  LIBDIR=/usr/lib
+else ifeq ($(arch),armv7l)
   LIBDIR=/usr/lib
 endif
 
@@ -13,10 +15,10 @@ INCS = -Isrc
 # pkg install libasound2-dev
 LIBS = -lasound -lpthread
 VJDLIBS = -lvdj -lcdj
-ADJDEPS = src/adj.h src/adj_keyb.h src/adj_midiin.h src/tui.h src/adj_vdj.h
-ADJSRC = src/adj.c src/adj_keyb.c src/adj_vdj.c src/adj_midiin.c src/tui.c
+ADJDEPS = src/adj.h src/adj_keyb.h src/adj_midiin.h src/tui.h src/adj_vdj.h src/adj_tui.h src/adj_cli.h
+ADJSRC = src/adj.c src/adj_keyb.c src/adj_vdj.c src/adj_midiin.c src/tui.c src/adj_tui.c src/adj_cli.c
 
-OBJS = target/adj_diff.o target/adj_numpad.o target/adj_keyb.o target/adj_midiin.o target/adj_vdj.o target/tui.o target/adj_conf.o
+OBJS = target/adj_diff.o target/adj_bpm.o target/adj_numpad.o target/adj_keyb.o target/adj_midiin.o target/adj_vdj.o target/tui.o target/adj_conf.o target/adj_tui.o target/adj_cli.o
 
 all: target $(OBJS) target/libadj.so  target/libadj.a target/adj target/adj_midilearn
 
@@ -54,6 +56,12 @@ target/tui.o: src/tui.c src/tui.h
 target/adj_vdj.o: src/adj_vdj.c src/adj_vdj.h
 	$(CC) $(CFLAGS) -c -o $@ src/adj_vdj.c $(LIBS)
 
+target/adj_tui.o: src/adj_tui.c src/adj_tui.h
+	$(CC) -Wall -fPIC -c src/adj_tui.c -Isrc -o $@
+
+target/adj_cli.o: src/adj_cli.c src/adj_cli.h
+	$(CC) -Wall -fPIC -c src/adj_cli.c -Isrc -o $@
+
 target/adj_keyb.o: src/adj_keyb.c src/adj_keyb.h
 	$(CC) $(CFLAGS) -c -o $@ src/adj_keyb.c $(LIBS)
 
@@ -69,6 +77,9 @@ target/adj_conf.o: src/adj_conf.c src/adj_conf.h
 target/adj_diff.o: src/adj_diff.c src/adj_diff.h
 	$(CC) $(CFLAGS) -c -o $@ src/adj_diff.c $(LIBS)
 
+target/adj_bpm.o: src/adj_bpm.c src/adj_bpm.h
+	$(CC) $(CFLAGS) -c -o $@ src/adj_bpm.c $(LIBS)
+
 .PHONY: clean install uninstall deb test
 
 test:
@@ -81,12 +92,13 @@ clean:
 	rm -rf target/
 
 install:
-	install -v -o root -m 777 target/adj           $(DESTDIR)/usr/bin/
-	install -v -o root -m 644 target/libadj.so     $(DESTDIR)$(LIBDIR)
+	install -v -o root -m 755 target/adj           $(DESTDIR)/usr/bin/
+	install -v -o root -m 755 target/libadj.so     $(DESTDIR)$(LIBDIR)/libadj.so.1.0
+	cd $(DESTDIR)$(LIBDIR); ln -s libadj.so.1.0 libadj.so
 	cp -rv etc/* $(DESTDIR)/etc/
 
 uninstall:
-	rm $(DESTDIR)/usr/bin/adj $(DESTDIR)$(LIBDIR)/libadj.so
+	rm $(DESTDIR)/usr/bin/adj $(DESTDIR)$(LIBDIR)/libadj.so $(DESTDIR)$(LIBDIR)/libadj.so.1.0
 
 deb:
 	sudo deploy/build-deb.sh

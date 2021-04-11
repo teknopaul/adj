@@ -35,6 +35,7 @@ static void init_term()
 
 
 static int difflock_master = 0;
+static int follow_tempo = 0;
 
 //SNIP_set_bpm
 
@@ -51,6 +52,7 @@ static int copying_bpm = 0;      // 'c' was pressed
 static int setting_difflock = 0; // 'l' was pressed
 static int setting_default_difflock = 0;     // 'd' was pressed
 static int setting_trigger = 0;  // 't' was pressed
+static int setting_track_start = 0;  // 'z' was pressed
 
 static void reset_char_bpm()
 {
@@ -61,6 +63,7 @@ static void reset_char_bpm()
     setting_difflock = 0;
     setting_default_difflock = 0;
     setting_trigger = 0;
+    setting_track_start = 0;
 }
 
 static int add_char_bpm(char next)
@@ -211,6 +214,9 @@ static void* read_keys(void* arg)
             } else if (ch == 'B') {
                 adj_vdj_become_master(adj);
 
+            } else if (ch == 'C') {
+                adj_vdj_follow_tempo(adj, follow_tempo = !follow_tempo);
+
             } else if (ch == 'K') { 
                 // quit process, stops all synths
                 adj_exit(adj);
@@ -225,6 +231,12 @@ static void* read_keys(void* arg)
                 continue;
             } else if (ch == 'd') {
                 setting_default_difflock = 1;
+                continue;
+            } else if (ch == 'z') {
+                setting_track_start = 1;
+                continue;
+            } else if (ch == 't') {
+                setting_trigger = 1;
                 continue;
             } else if (ch == '.' || (ch >= '0' && ch <= '9')) {
                 if (setting_bpm) {
@@ -241,15 +253,23 @@ static void* read_keys(void* arg)
                 if (copying_bpm) {
                     adj_vdj_copy_bpm(adj, player_id);
                     adj_vdj_difflock_arff(adj);
+                    reset_char_bpm();
                 }
                 else if (setting_difflock) {
                     adj_vdj_difflock(adj, player_id, 0);
+                    reset_char_bpm();
                 }
                 else if (setting_default_difflock) {
                     adj_vdj_difflock(adj, player_id, 1);
+                    reset_char_bpm();
                 }
                 else if (setting_trigger) {
                     adj_vdj_trigger_from_player(adj, player_id);
+                    reset_char_bpm();
+                }
+                else if (setting_track_start) {
+                    adj_vdj_track_start(adj, player_id);
+                    reset_char_bpm();
                 }
                 continue;
             } else {

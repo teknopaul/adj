@@ -1,0 +1,7 @@
+#!/bin/bash
+#
+# start script that logs stderr
+#
+
+exec adj 2> ./adj.log
+tail ./adj.log

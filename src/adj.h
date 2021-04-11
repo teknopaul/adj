@@ -18,8 +18,20 @@
 //SNIP_adjh_constants
 
 typedef struct adj_seq_info_s adj_seq_info_t;
+typedef struct adj_ui_s adj_ui_t;
 
 // ui callbacks
+typedef void (*adj_init_error_ui_handler_pt)(adj_ui_t* ui, char* message);
+typedef void (*adj_message_ui_handler_pt)(adj_ui_t* ui, adj_seq_info_t* adj, char* message);
+typedef void (*adj_data_item_ui_handler_pt)(adj_ui_t* ui, int idx, char* name, char* value);
+typedef void (*adj_data_change_ui_handler_pt)(adj_ui_t* ui, adj_seq_info_t* adj, int item, char* data);
+typedef void (*adj_tick_ui_handler_pt)(adj_ui_t* ui, adj_seq_info_t* adj, snd_seq_tick_time_t tick);
+typedef void (*adj_beat_ui_handler_pt)(adj_ui_t* ui, adj_seq_info_t* adj, unsigned char player_id);
+typedef void (*adj_stop_ui_handler_pt)(adj_ui_t* ui, adj_seq_info_t* adj);
+typedef void (*adj_start_ui_handler_pt)(adj_ui_t* ui, adj_seq_info_t* adj);
+typedef void (*adj_exit_ui_handler_pt)(adj_ui_t* ui, int sig);
+
+// sys callbacks
 typedef void (*adj_message_handler_pt)(adj_seq_info_t* adj, char* message);
 typedef void (*adj_data_change_handler_pt)(adj_seq_info_t* adj, int item, char* data);
 typedef void (*adj_tick_handler_pt)(adj_seq_info_t* adj, snd_seq_tick_time_t tick);
@@ -37,6 +49,7 @@ struct adj_seq_info_s {
     float       bpm;
     snd_seq_tick_time_t tick;
     char        alsa_sync;
+    adj_ui_t*     ui;
     vdj_t*      vdj;
     adj_message_handler_pt      message_handler;
     adj_data_change_handler_pt  data_change_handler;
@@ -45,6 +58,18 @@ struct adj_seq_info_s {
     adj_stop_handler_pt         stop_handler;
     adj_start_handler_pt        start_handler;
     adj_exit_handler_pt         exit_handler;
+};
+
+struct adj_ui_s {
+    adj_init_error_ui_handler_pt   init_error_handler;
+    adj_message_ui_handler_pt      message_handler;
+    adj_data_item_ui_handler_pt    data_item_handler;
+    adj_data_change_ui_handler_pt  data_change_handler;
+    adj_tick_ui_handler_pt         tick_handler;
+    adj_beat_ui_handler_pt         beat_handler;
+    adj_stop_ui_handler_pt         stop_handler;
+    adj_start_ui_handler_pt        start_handler;
+    adj_exit_ui_handler_pt         exit_handler;
 };
 
 //SNIP_adjh_constants
@@ -73,8 +98,6 @@ struct adj_seq_info_s {
 #define ADJ_ITEM_DIFFLOCK   0x0B  // locked bpm to external player, aka sync
 
 //SNIP_adjh_constants
-
-extern char tui; // 1 if using fancy console
 
 // start public api
 

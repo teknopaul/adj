@@ -11,7 +11,9 @@ name=adj
 arch=$(uname -m)
 
 if [ $arch == armv6l ] ; then
-  lib_dir=/usr/lib/x86_64-linux-gnu
+  lib_dir=/usr/lib
+elif [ $arch == armv7l ] ; then
+  lib_dir=/usr/lib
 elif [ $arch == x86_64 ] ; then
   lib_dir=/usr/lib
 fi
@@ -26,9 +28,11 @@ project_root=$PWD
 tmp_dir=/tmp/$name-debbuild
 rm -rf $tmp_dir
 mkdir -p $tmp_dir/DEBIAN $tmp_dir/usr/bin $tmp_dir/$lib_dir $tmp_dir/etc
+chmod 755 $tmp_dir/DEBIAN $tmp_dir/usr/bin $tmp_dir/$lib_dir $tmp_dir/etc
 
 cp --archive target/adj $tmp_dir/usr/bin
-cp --archive target/libadj.so $tmp_dir/$lib_dir
+cp --archive target/libadj.so $tmp_dir/$lib_dir/libadj.so.1.0
+(cd $tmp_dir/$lib_dir; ln -s libadj.so.1.0 libadj.so)
 cp --archive etc/* $tmp_dir/etc
 
 size=$(du -sk $tmp_dir | cut -f 1)
@@ -51,8 +55,8 @@ cp --archive -R $project_root/deploy/DEBIAN/p* $tmp_dir/DEBIAN
 # Setup the installation package ownership here if it needs root
 #
 chown root.root $tmp_dir/usr/bin/*  $tmp_dir/$lib_dir/*
-chmod 755 $tmp_dir/usr/bin/*
-chmod 644 $tmp_dir/$lib_dir/*
+find $tmp_dir/ -type d | xargs chmod 755
+find $tmp_dir/ -type f | xargs chmod go-w
 
 
 #

@@ -76,7 +76,16 @@ void adj_vdj_difflock_nudge(adj_seq_info_t* adj, int32_t amount);
  */
 void adj_vdj_difflock_master(adj_seq_info_t* adj, int on_off);
 
-
+/**
+ * The VDJ requests to becomes the master, this might confuse players that expect a beatgrid to be available.
+ */
 void adj_vdj_become_master(adj_seq_info_t* adj);
+
+/**
+ * When difflock is on, this causes the VDJ to also sync to bpm changes on the deck being synced.
+ */
+void adj_vdj_follow_tempo(adj_seq_info_t* adj, int on_off);
+
+void adj_vdj_track_start(adj_seq_info_t* adj, uint8_t player_id);
 
 #endif // _ADJ_VDJ_INCLUDED_

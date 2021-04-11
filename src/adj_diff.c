@@ -1,9 +1,9 @@
 #include <string.h>
 #include <inttypes.h>
 
-// calculations of beat differences
+// calculations of beat differences in ms.
 // If we calculate how fast or slow we are compared to decks on every beat 
-// we find it jumps about too much, since the beat packets dont seem to arrive with millisecond accuracy.
+// We find it jumps about too much, since the beat packets dont seem to arrive with millisecond accuracy.
 // This tracks diffs with a rolling average over AVG_SIZE beats.
 
 // TODO recommend bpm adjusment

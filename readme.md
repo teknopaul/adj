@@ -255,13 +255,12 @@ Well, it's midi so pretty much compatible with any device, to map your controlle
 
 - This is midi toy, so there is no audio buffering, alsa seems to keep perfect time but takes significantly longer than 10ms to stop / start.
 - Midi controllers have no delay (technically `snd_seq_event_input()` in blocking mode has some latency but its not noticeable)
-- Quantized restart has a noticeable `50ms` latency not sure if its alsa or my midi devices I'm testing with. Fixed with a nudge.
 - Quantized loop restarting seems to work better with alsa sync (`-y`).
 - CDJ mixing requires alsa sync (`-y`).
 - Some future version may implement times that attempt to predict alsa restart latency, its technically possible but fiddly.
 - `libadj` is written in C and CPU usage on my laptop is minimal, even when running it uses less CPU than many idle applications.
-- syncing based on the apparition of UDP packets on the network naturally has latency involved.
-- My XDJs mk1s cant keep time to millisecond resolution, maybe newer devices can.
+- syncing based on the arrival of UDP packets naturally has latency involved.
+- My XDJ-1000s mk1s cant keep time to millisecond resolution, my (newer) XDJ-700s seem to do a better job.
 
 ## Bugs
 

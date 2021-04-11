@@ -103,10 +103,18 @@ static void* read_keys(void* arg)
                     ch = getchar();
                     switch(ch) {
                         case 'C':// right
-                            adj_nudge(adj, 10);
+                            if (difflock) {
+                                adj_vdj_difflock_nudge(adj, 1);
+                            } else {
+                                adj_nudge(adj, 10);
+                            }
                             continue;
                         case 'D':// left
-                            adj_nudge(adj, -10);
+                            if (difflock) {
+                                adj_vdj_difflock_nudge(adj, -1);
+                            } else {
+                                adj_nudge(adj, -10);
+                            }
                             continue;
                         case 'A': // up
                             adj_nudge(adj, 20);
@@ -121,8 +129,31 @@ static void* read_keys(void* arg)
                             adj_vdj_difflock_arff(adj);
                             difflock_master = 0;
                             continue;
+                        case '6': // pg down
+                            ch = getchar();
+                            if (ch == '~') {
+                                if (difflock) {
+                                    adj_vdj_difflock_nudge(adj, -1);
+                                } else {
+                                    adj_adjust_tempo(adj, -0.1);
+                                }
+                            }
+                            continue;
+                        case '5': // pg up
+                            ch = getchar();
+                            if (ch == '~') {
+                                if (difflock) {
+                                    adj_vdj_difflock_nudge(adj, 1);
+                                } else {
+                                    adj_adjust_tempo(adj, 0.1);
+                                }
+                            }
+                            continue;
                         default: 
                             continue;
+                            
+                            
+                            
                     }
                 }
 

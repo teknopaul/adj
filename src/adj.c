@@ -21,14 +21,12 @@
 
 #include "adj.h"
 #include "adj_keyb.h"
+#include "adj_numpad.h"
 #include "adj_midiin.h"
 #include "adj_conf.h"
+#include "adj_tui.h"
+#include "adj_cli.h"
 #include "adj_vdj.h"
-#include "tui.h"
-
-
-static struct timespec adj_pause = { 0L, 50000000L };
-static unsigned _Atomic adj_paused = ATOMIC_VAR_INIT(1);
 
 static void usage()
 {
@@ -48,108 +46,31 @@ static void usage()
     exit(0);
 }
 
-
-// user interface
-
-char tui = 0;
+static unsigned _Atomic adj_running = ATOMIC_VAR_INIT(1);
+static adj_ui_t ui = {0};
 static char keyb_input = 0;
 static char numpad_input = 0;
-static int message_ticks = 0;
 
 
 static void init_error(char* msg)
 {
-    if (tui) tui_error_at(msg, 0, 15);
+    ui.init_error_handler(&ui, msg);
 }
+
 static void init_error_i(const char* msg, int i)
 {
-    if (tui) {
-        int len = strlen(msg) + 15;
-        char* text = (char*) calloc(1, len + 1);
-        snprintf(text, len, msg, i);
-        tui_error_at(text, 0, 15);
-        free(text);
-    }
-}
-
-static void data_item(int idx, char* name, char* value)
-{
-    tui_text_at(name, 2, 14 - idx);
-    tui_data_at(value, 15, 14 - idx);
-}
-
-static void data_item_fixed_width(int idx, char* name, char* value)
-{
-    tui_text_at(name, 2, 14 - idx);
-    tui_data_at_fixed(value, 10, 15, 14 - idx);
-}
-
-static void tui_setup(int height)
-{
-    tui_init(height);
-    tui_set_window_title("adj - powered by libadj and libvdj");
-
-    data_item(ADJ_ITEM_PORT, "alsa port:", "");
-    data_item(ADJ_ITEM_CLIENT_ID, "client_id:", "");
-    data_item(ADJ_ITEM_MIDI_IN, "midi in:", "");
-    data_item(ADJ_ITEM_MIDI_OUT, "midi out:", "");
-    data_item(ADJ_ITEM_KEYB, "keyb:", "  ");
-    data_item_fixed_width(ADJ_ITEM_STATE_SEQ, "seq state:", "uninit");
-    data_item_fixed_width(ADJ_ITEM_STATE_Q, "q state:", "stopped");
-    data_item_fixed_width(ADJ_ITEM_BPM, "bpm:", "0.0000000");
-    data_item_fixed_width(ADJ_ITEM_EVENTS, "events:", "0");
-    data_item_fixed_width(ADJ_ITEM_OP, "op:", "init");
-
-    tui_text_at("|...:...:...:...|...:...:...:...|...:...:...:...|...:...:...:...|", 2, 1);
-}
-
-// Symbol to render at a given quarter beat, when the sequencer is not at this point
-static char* symbol_off(int q_beat)
-{
-    if (q_beat % 16 == 0) return "|";
-    if (q_beat % 4 == 0) return ":";
-    return ".";
-}
-
-// Symbol to render at a given quarter beat, when the sequencer is at this point
-static char* symbol_on(int q_beat)
-{
-    if (q_beat % 16 == 0) return "\033[7m|\033[m";  // 7m is negative
-    if (q_beat % 4 == 0) return "\033[7m:\033[m";
-    return "\033[7m.\033[m";
-}
-
-// x position of a given quarter beat
-static int q_beat_x(int q_beat)
-{
-    return (q_beat % 64) + 2;
-}
-
-static void message_off()
-{
-    if (message_ticks && tui) {
-        tui_lock();
-        tui_set_cursor_pos(0, 0);
-        tui_delete_line();
-        tui_unlock();
-        message_ticks = 0;
-        fflush(stdout);
-    }
+    char txt[256];
+    snprintf(txt, 1255, "%s : %i", msg, i);
+    ui.init_error_handler(&ui, txt);
 }
 
 static void signal_exit(int sig)
 {
+    adj_running = 0;
     adj_keyb_exit();
     adj_midiin_exit();
 
-    if (tui) {
-        tui_lock();
-        tui = 0;
-        tui_exit();
-        tui_unlock();
-    } else {
-        putchar('\n');
-    }
+    ui.exit_handler(&ui, sig);
 
     if (keyb_input) {
         adj_keyb_reset_term();
@@ -169,79 +90,41 @@ static void signal_exit(int sig)
 
 static void data_change_handler(adj_seq_info_t* adj, int idx, char* value)
 {
-    if (tui) {
-        if  (idx <= ADJ_ITEM_OP) {
-            tui_lock();
-            tui_data_at_fixed(value, 10, 15, 14 - idx);
-            tui_unlock();
-            fflush(stdout);
-        }
-    }
+    adj->ui->data_change_handler(adj->ui, adj, idx, value);
 }
 
 static void message_handler(adj_seq_info_t* adj, char* message)
 {
-    if (tui) {
-        tui_lock();
-        message_ticks = 1;
-        tui_set_cursor_pos(0, 0);
-        tui_delete_line();
-        tui_error_at(message, 2, 0);
-        tui_unlock();
-    }
-    else puts(message);
-    fflush(stdout);
+    adj->ui->message_handler(adj->ui, adj, message);
 }
 
 static void tick_handler(adj_seq_info_t* adj, snd_seq_tick_time_t tick)
 {
     int quarter_beats = tick == 0 ? 0 : tick / ADJ_CLOCKS_PER_BEAT;
 
-    if (tui) {
-        tui_lock();
-        if (quarter_beats > 0) {
-            tui_set_cursor_pos(q_beat_x(quarter_beats - 1), 1);
-            puts(symbol_off(quarter_beats - 1));
-        }
-        tui_set_cursor_pos(q_beat_x(quarter_beats), 1);
-        puts(symbol_on(quarter_beats));
-        tui_unlock();
-    }
-    else {
-        fputs(symbol_off(quarter_beats), stdout);
-        if (quarter_beats % 64 == 63) {
-            putchar('|');
-            putchar('\n');
-        }
-    }
-    fflush(stdout);
     if (adj->vdj) {
         if (quarter_beats % 4 == 0) {
             unsigned char bar_pos = 1 + (quarter_beats % 16) / 4;
             adj_vdj_beat(adj, bar_pos);
         }
     }
+    adj->ui->tick_handler(adj->ui, adj, tick);
 }
 
 static void exit_handler(adj_seq_info_t* adj)
 {
-    adj_paused = 0;
-    signal_exit(0);
+    adj->ui->exit_handler(adj->ui, 0);
 }
 
 static void stop_handler(adj_seq_info_t* adj)
 {
-    if (tui) {
-        tui_lock();
-        tui_text_at("|...:...:...:...|...:...:...:...|...:...:...:...|...:...:...:...|", 2, 1);
-        tui_unlock();
-    }
-    else puts("");
+    adj->ui->stop_handler(adj->ui, adj);
     if (adj->vdj) adj_vdj_set_playing(adj, 0);
 }
+
 static void start_handler(adj_seq_info_t* adj)
 {
-    //if (tui) tui_text_at("|...:...:...:...|...:...:...:...|...:...:...:...|...:...:...:...|", 2, 1);
+    adj->ui->start_handler(adj->ui, adj);
     if (adj->vdj) adj_vdj_set_playing(adj, 1);
 }
 
@@ -264,9 +147,11 @@ int main(int argc, char* argv[])
     adj->message_handler = message_handler;
     adj->data_change_handler = data_change_handler;
     adj->tick_handler = tick_handler;
+    adj->beat_handler = NULL;
     adj->stop_handler = stop_handler;
     adj->start_handler = start_handler;
     adj->exit_handler = exit_handler;
+    adj->ui = &ui;
 
     // parse command line
 
@@ -336,8 +221,9 @@ int main(int argc, char* argv[])
     if (numpad_input) keyb_input = 0;
 
     if ( isatty(STDOUT_FILENO) ) {
-        tui = 1;
-        tui_setup(vdj ? 21 : 15);
+        initialize_tui(&ui, vdj ? 1 : 0);
+    } else {
+        initialize_cli(&ui, vdj ? 1 : 0);
     }
 
     // setup alsa sequencer
@@ -346,24 +232,23 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    if (tui) {
-        snprintf(data_change, 161, "%s:clock", adj->seq_name);
-        data_item(ADJ_ITEM_PORT, "alsa port:", data_change);
+    snprintf(data_change, 161, "%s:clock", adj->seq_name);
+    ui.data_item_handler(&ui, ADJ_ITEM_PORT, "alsa port:", data_change);
 
-        snprintf(data_change, 161, "%i:0", adj->client_id);
-        data_item(ADJ_ITEM_CLIENT_ID, "client_id:", data_change);
-    }
+    snprintf(data_change, 161, "%i:0", adj->client_id);
+    ui.data_item_handler(&ui, ADJ_ITEM_CLIENT_ID, "client_id:", data_change);
+
 
     // wire up midi devices
     if (out_port_name) {
         cli[2047] = '0';
         snprintf(cli, 2047, "aconnect '%s:clock' '%s'", adj->seq_name, out_port_name);
-        if (tui) tui_set_cursor_pos(0, 0);
         if ( system(cli) ) {
             fprintf(stderr, "aconnect '%s:clock' '%s' failed\n", adj->seq_name, out_port_name);
+            init_error("aconnect out port failed");
             return 1;
         } else {
-            if (tui) data_item(ADJ_ITEM_MIDI_OUT, "midi out:", out_port_name);
+            ui.data_item_handler(&ui, ADJ_ITEM_MIDI_OUT, "midi out:", out_port_name);
         }
     }
 
@@ -372,12 +257,12 @@ int main(int argc, char* argv[])
         if ((rv = adj_midiin(adj)) == ADJ_OK) {
             cli[2047] = '0';
             snprintf(cli, 2047, "aconnect '%s' '%s:clock' ", in_port_name, adj->seq_name);
-            if (tui) tui_set_cursor_pos(0, 0);
             if ( system(cli) ) {
                 fprintf(stderr, "aconnect '%s' '%s:clock' failed\n", in_port_name, adj->seq_name);
+                init_error("aconnect in port failed");
                 return 1;
             } else {
-                if (tui) data_item(ADJ_ITEM_MIDI_IN, "midi in:", in_port_name);
+                ui.data_item_handler(&ui, ADJ_ITEM_MIDI_IN, "midi in:", in_port_name);
             }
         } else {
             if (rv == ADJ_SYNTAX) {
@@ -394,10 +279,21 @@ int main(int argc, char* argv[])
         if ( (rv = adj_keyb_input(adj, enter_toggles)) != ADJ_OK ) {
             init_error_i("error: keyb init failed: %i\n", rv);
         } else {
-            if (tui) data_item(ADJ_ITEM_KEYB, "keyb:", "on");
+            ui.data_item_handler(&ui, ADJ_ITEM_KEYB, "keyb:", "on");
         }
     }
 
+    // Numpad handling
+    signal(SIGINT, signal_exit);
+    if (numpad_input) {
+        if ( (rv = adj_numpad_input(adj, enter_toggles)) != ADJ_OK ) {
+            init_error_i("error: numpad init failed: %i\n", rv);
+        } else {
+            ui.data_item_handler(&ui, ADJ_ITEM_KEYB, "numpad:", "on");
+        }
+    }
+
+    // Virtual CDJ
     if (vdj) {
         if ( ! (v = adj_vdj_init(adj, iface, vdj_flags, adj->bpm, vdj_offset)) ) {
             init_error_i("error: vdj start failed: %i\n", 0);
@@ -416,15 +312,13 @@ int main(int argc, char* argv[])
     }
 
     sched_yield();
-    nanosleep(&adj_pause, (struct timespec *)NULL);
+    usleep(50000);
 
     if (auto_start) adj_start(adj);
 
-    while (adj_paused) {
-        nanosleep(&adj_pause, (struct timespec *)NULL);
-        if (message_ticks && ++message_ticks > 50) {
-            message_off();
-        }
+    adj_running = 1;
+    while (adj_running) {
+        usleep(50000);
     }
 
     return 0;
