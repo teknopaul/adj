@@ -11,7 +11,7 @@
 @author teknopaul 2021
 
 */
-
+#include <stdio.h>
 #include <sched.h>
 #include <signal.h>
 #include <stdatomic.h>
