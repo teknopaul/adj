@@ -1,0 +1,60 @@
+#!/bin/bash
+#
+# Detect devices and start adj
+#
+
+conf_file=/tmp/adj.conf
+cp /etc/adj.conf $conf_file
+
+function set_conf() {
+  sed -i -e "s/^#*$1 .*$/$1    $2/g" $conf_file
+}
+function unset_conf() {
+  sed -i -e "s/^#*$1 /#$1 /g" $conf_file
+}
+
+
+set_conf vdj_iface eth0
+
+# detect korg controller
+aconnect -l | grep "nanoKONTROL Studio MIDI 1"
+if [ $? == 0 ]
+then
+  set_conf midi_in "nanoKONTROL Studio:nanoKONTROL Studio MIDI 1"
+else
+  unset_conf midi_in
+fi
+
+# detect drum machine
+aconnect -l | grep "TR-6S MIDI 1"
+if [ $? == 0 ]
+then
+  set_conf midi_out "TR-6S:TR-6S MIDI 1"
+else
+  unset_conf midi_out
+fi
+
+
+# detect CDJs
+cdj-scan -i eth0
+if [ $? == 0 ]
+then
+  set_conf vdj true
+else
+  set_conf vdj false
+fi
+
+# detect numpad
+lsusb -d 1c4f:0002
+if [ $? == 0 ]
+then
+  set_conf numpad_in true
+else
+  set_conf numpad_in false
+fi
+
+
+
+
+exec adj -C $conf_file 2> ./adj.log
+

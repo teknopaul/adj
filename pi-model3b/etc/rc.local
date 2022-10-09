@@ -1,0 +1,26 @@
+#!/bin/bash
+#
+# rc.local
+#
+
+function print_ip() {
+  ip=$(hostname -I) || true
+  if [ "$ip" ]; then
+    printf "%s ip: %s\n" $(date --iso-8601=seconds) "$ip" >> /var/log/ip-boot.log
+    echo "ip address $ip"
+  fi
+}
+
+/root/bin/cdj-net-boot-auto-ip 1>&2 > /dev/null &
+disown
+print_ip
+
+# trim log we dont want /var filling up
+tail -5 /var/log/ip-boot.log > /var/log/ip-boot.log.tmp
+mv /var/log/ip-boot.log.tmp /var/log/ip-boot.log
+
+# announce ourselves on the network
+echo "$(date --iso-8601=seconds): $(hostname) $(hostname -I)" | netcat -bu -w1 169.254.255.255 4000 &
+disown
+
+exit 0

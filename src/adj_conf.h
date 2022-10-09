@@ -8,6 +8,8 @@ struct adj_conf_s {
     uint8_t     alsa_sync;
     uint8_t     keyb_in;
     uint8_t     numpad_in;
+    uint8_t     joystick_in;
+    uint8_t     scan_usb_in;
     char*       midi_in;
     char*       midi_out;
     float       bpm;
@@ -18,5 +20,6 @@ struct adj_conf_s {
 };
 
 adj_conf* adj_conf_init();
+adj_conf* adj_conf_init_file(char* file_name);
 
 #endif // _ADJ_CONF_INCLUDED_

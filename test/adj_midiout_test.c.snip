@@ -1,0 +1,58 @@
+
+//SNIP_FILE SNIP_adjh_constants  ../src/adj.h
+
+#include "snip_core.h"
+
+
+// test the whole file
+#include "../src/adj_midiout.c"
+
+
+int adj_init_alsa(adj_seq_info_t* adj)
+{
+    int rv = ADJ_OK;
+
+    if ( ! adj->seq_name ) adj->seq_name = "adj";
+
+    // Setup Alsa
+    int alsa_err;
+    if ( ( alsa_err = snd_seq_open(&adj->alsa_seq, "default", SND_SEQ_OPEN_DUPLEX, SND_SEQ_NONBLOCK)) <  0) {
+        return ADJ_ALSA_SEQ_OPEN;
+    } else {
+        snd_seq_set_client_name(adj->alsa_seq, adj->seq_name);
+    }
+
+    adj->alsa_port = snd_seq_create_simple_port(adj->alsa_seq, "clock", SND_SEQ_PORT_CAP_WRITE|SND_SEQ_PORT_CAP_SUBS_WRITE|SND_SEQ_PORT_CAP_READ|SND_SEQ_PORT_CAP_SUBS_READ, SND_SEQ_PORT_TYPE_APPLICATION);
+
+    if (adj->alsa_port < 0) {
+        return ADJ_ALSA_PORT_OPEN;
+    }
+
+    // get alsa client_id, and print it because its useful for connect
+    snd_seq_client_info_t* info;
+    snd_seq_client_info_malloc(&info);
+
+    if (snd_seq_get_client_info(adj->alsa_seq, info) == 0){
+        adj->client_id = snd_seq_client_info_get_client(info);
+    }
+    snd_seq_client_info_free(info);
+
+        // create sequencer queue
+    adj->q = snd_seq_alloc_named_queue(adj->alsa_seq, "adjq");
+    if (adj->q < 0) {
+        rv = ADJ_ALSA_QUEUE_ALLOC;
+    }
+
+    return rv;
+}
+
+
+int main(int argc , char* argv[]) 
+{
+
+    adj_seq_info_t* adj = (adj_seq_info_t*) calloc(1, sizeof(adj_seq_info_t));
+    adj_init_alsa(adj);
+    adj_wire_midi_out(adj, NULL);
+    return 0;
+}
+

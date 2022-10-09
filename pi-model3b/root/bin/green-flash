@@ -1,0 +1,17 @@
+#!/bin/bash
+#
+# flash the led to indicate we are booting
+#
+
+for flash in 1 2 3 4
+do	
+  echo 1 > /sys/class/leds/led0/brightness
+  sleep 1
+  echo 0 > /sys/class/leds/led0/brightness
+  sleep 1
+done
+
+echo 1 > /sys/class/leds/led0/brightness
+sleep 3
+echo 0 > /sys/class/leds/led0/brightness
+

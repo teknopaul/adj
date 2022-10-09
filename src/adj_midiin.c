@@ -8,7 +8,7 @@
 static unsigned _Atomic adj_midiin_running = ATOMIC_VAR_INIT(1);
 
 
-// slider magic, use two buttons and any volume type control as a ptich adjust slider
+// slider magic, use two buttons and any volume type control as a pitch adjust slider
 
 static unsigned int slider_on = 0;
 static int slider_value = -1;

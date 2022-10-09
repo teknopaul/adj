@@ -1,0 +1,4 @@
+
+echo none > /sys/class/leds/led0/trigger
+echo 0 > /sys/class/leds/led0/brightness
+

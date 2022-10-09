@@ -8,6 +8,7 @@ make clean
 make
 make test
 make deb
+sudo rm -f /var/tmp/vdj-player-id
 sudo make uninstall ||:
 sudo make install
 sudo make uninstall

@@ -4,7 +4,7 @@
 
 Beat-mixing midi instruments and CDJs on Linux.
 
-I write this to enable mixing a Roland TR-6s drum machine with a vinyl set.  a.k.a. dex, fx & 909.  The TR-6s has controls to stop, start and tempo adjust, but not with enough precision to beat-mix a drum track onto a playing record.  A midi controller or usb keyboard can be used to avoid having your laptop front and center.
+I write this to enable mixing a Roland TR-6s drum machine with a vinyl set.  a.k.a. dex, fx & 909.  The TR-6s has controls to stop, start and tempo adjust, but not with enough precision to beat-mix a drum track onto a playing record.  A midi controller, usb keyboard or joystick can be used to avoid having your laptop front and center.
 
 ## Features
 
@@ -36,6 +36,8 @@ I write this to enable mixing a Roland TR-6s drum machine with a vinyl set.  a.k
 `make deb` requires dpkg build tools, `make test` requires `sniprun`. Output is just a couple of files if you want to package for other distros.
 
 Also builds on a [raspbery pi](https://www.raspberrypi.org/) model B with 500mb of RAM running raspbian. No need to cross compile, just install `gcc` and build tools.
+
+Also compiles on a more modern 64bit raspberry pi.
 
 ## Overview/Usage
 
@@ -91,7 +93,7 @@ Sequencer bpm defaults to 120.00 on startup, change with `-b 140`.
 
 Hit space and you should hear the device start.  If you set `-e` the enter key works as well.  See below keyboard options for an explanation of the key bindings and options.
 
-Config can be supplied as command line args to `adj` or set in a file `/etc/adj.conf`.
+Config can be supplied as command line args to `adj` or set in a file `/etc/adj.conf`, a different confrig file can be used by supplying the `-C` argument.
 
 
 ## Connecting Pioneer CDJs
@@ -110,7 +112,7 @@ The `-v`  option creates a virtual CDJ device in software that can communicate w
     diff:   [+025        ] [            ] [            ] [            ]
     master: [01] [--] [----]
 
-Once the midi and a CDJ is synchronized you can lock the midi sequencer to the beat of the deck, I find diff is usually around `+20` when the midi sequence and the CDJ are in sync. Typing `shift` + `U`, `I` ,`O` or `P` locks the midi sequence to the relevant player (1 to 4), this means `adj` keeps the diff the same by auto nudging the required number of milliseconds on the last beat of the bar.  N.B. this sounds real screwy if the BPMs are not more or less the same (use `F1` to `F4` to copy bpm first).  
+Once the midi and a CDJ is synchronized you can lock (diff lock) the midi sequencer to the beat of the deck, I find diff is usually around `+20` when the midi sequence and the CDJ are in sync. Typing `shift` + `U`, `I` ,`O` or `P` locks the midi sequence to the relevant player (1 to 4), this means `adj` keeps the diff the same by auto nudging the required number of milliseconds on the last beat of the bar.  N.B. this sounds real screwy if the BPMs are not more or less the same (use `F1` to `F4` to copy bpm first).  
 
 N.B. there are alternative key bindings or you can map midi devices.
 
@@ -151,7 +153,7 @@ I had to make a decisions about resolution of the controls and the nudge amounts
 
 ## UI
 
-UI is a console afair. `libdj` is designed to support other UIs, so I might write a QT or GTK front end one day.   It not really necessary tho since input is performed with a physical midi controller (or pc keyboard) and the output is audio not the monitor. A fancy GUI does not add much benefit.
+UI is a console affair. `libdj` is designed to support other UIs, so I might write a QT or GTK front end one day.   It not really necessary tho since input is performed with a physical midi controller (or pc keyboard) and the output is audio not the monitor. A fancy GUI does not add much benefit.
 
 
 ## The UI shows 
@@ -201,7 +203,31 @@ Two types of keyboard are supported.
 
 ![keyb](doc/keyb-map.png)
 
-Type the bpm to two decimal places to set the value, no need to press enter.
+### Key bindings
+
+- `Space` - toggle start / stop
+- `Enter` - ditto (provided `-e` cli argument was provided)
+- `+/-` - adjust tempo
+- `b[bpm]` - typing 'b' followed by the bpm to 2 decimal places sets the bpm, e.g. `b125.50` changes the tempo to 125.5 beats per minute.
+- `Home` - quantized restart
+- `K` - kill , exit
+
+If connected to CDJs
+
+- `F1` to `F4` - copy bpm from CDJ decks.
+- `u,i,o,p` - trigger the start from the downbeat of a CDJ player, (players from 1 to 4)
+- `U,I,O,P` - enable diff lock for the player, adj will keep the midi sequence in sync with the specified CDJ.
+- `V,X` - adjust the diff of the active diff lock
+- `M` - toggle diff lock to the master player
+- `C` - follow tempo changes, without this adj presumes tracks do not change tempo
+- `Esc Esc` - disable diff lock, (stop syncing with CDJs)
+- `c [player_id]` - copy bpm from the numbered CDJ,  e.g. `c2` copies the bpm from player with id 2
+- `l [player_id]` - diff lock to the specified player
+- `d [player_id]` - diff lock to the specified player, with default diff (+20ms)  
+- `t [player id]` - restart the sequence based on the specified players downbeat
+- `z [player id]` - mark track start used for bpm analysis
+
+
 
 ### and a calculator style keyboard
 
@@ -251,6 +277,63 @@ Well, it's midi so pretty much compatible with any device, to map your controlle
 ![Korg nanaKONTROL](doc/nano-kontrol)
 
 
+## Game pad control
+
+`adj` can be controlled with a game pads, if the configuration item `scan_usb_in` is `true` adj will try to find supported gamepads and load the correct joystic module.
+
+### Logitech F310
+
+.  [The Logitech F310](https://www.logitech.com/en-us/product/f310-gamepad) Game pad has one main axis of control, left and right axes of control, numbered buttons and 4 trigger style buttons on the front. The game pad's "mode" button should be enabled.
+
+![Game Pad](doc/game-pad.png)
+
+- The main axis is used to increase and decrease the tempo.
+- The secondary axes are used to nudge.
+- Top left triggers - start (toggle)
+- Bottom left trigger - ctrl
+- Bottom right trigger - quantized restart
+
+If `adj` can connect to CDJs...
+
+- Buttons 1 to 4 copy bpm from CDJ player 1 to 4.
+- Top right trigger - restarts on the down beat of the most recently selected player.
+- Buttons 9 and 10 turn on and off diff lock.
+
+Bottom left trigger acts like a control key,  
+when held down
+
+- Button 1 exits adj
+- Button 2 pressed 4 times sets bpm (tap)
+- Button 3 save bpm
+
+### Playstation 3 
+
+Playstation 3 gamepads are supported with similar controls to the Logitec game pad. When the ps3 gamepad is connected with the USB cable to a computer that has a bluetooth host the game pad can be paired with the computer.
+Playstation game pad buttons are marked with symbols and not numbers.
+□ button 1  
+X button 2  
+Δ button 3  
+O button 4  
+The start button (▶) can be used to turn on CDJ diff lock and the select button (⏹)disables it.
+The P3 button can also be used to tap the bpm
+
+### Nintendo Switch
+
+Logic3 Faceoff Deluxe+ Audio Wired Controller for Nintendo Switch (0e6f:0184) is supported.
+
+Y button 1  
+B button 2  
+X button 3  
+A button 4  
+
+Home and circle buttons turn difflock on and off
++/- buttons support fine adjustment of diff lock
+
+
+Other game pads might work, `/etc/adj/modules.conf` contains the mapping from usb-id to the joystick module to load.
+
+
+
 ## Audio latency
 
 - This is midi toy, so there is no audio buffering, alsa seems to keep perfect time but takes significantly longer than 10ms to stop / start.
@@ -259,7 +342,7 @@ Well, it's midi so pretty much compatible with any device, to map your controlle
 - CDJ mixing requires alsa sync (`-y`).
 - Some future version may implement times that attempt to predict alsa restart latency, its technically possible but fiddly.
 - `libadj` is written in C and CPU usage on my laptop is minimal, even when running it uses less CPU than many idle applications.
-- syncing based on the arrival of UDP packets naturally has latency involved.
+- Syncing based on the arrival of UDP packets naturally has latency involved.
 - My XDJ-1000s mk1s cant keep time to millisecond resolution, my (newer) XDJ-700s seem to do a better job.
 
 ## Bugs
@@ -269,13 +352,13 @@ packet timing is ~20ms off not sure if this is libdj or CDJs themselves.
 
 ## Status
 
-Basics tested on a single machine. Very much in development, API is not stable yet.
+The code is fairly stable, internal API is not stable yet.
 
 ## Platforms
 
-Currently testing on Intel hardware, new(ish) raspberry pi is in the mail.
+Currently testing on Intel hardware, new(ish) raspberry pi.
 
-Hopefully atargetting something like this ![little router](doc/cioswi-router.png)
+Hopefully a targeting something like this ![little router](doc/cioswi-router.png)
 
 
 ## Author

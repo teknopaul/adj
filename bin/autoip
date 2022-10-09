@@ -7,6 +7,8 @@
 # this script saves the ip to `/var/tmp/autoip.dat`
 #
 
+# supply interface to use, as the only argument, default enx44ed5700012a
+
 if=${1:-enx44ed5700012a}
 
 function maintainip {
@@ -36,7 +38,7 @@ sleep 11
 while true
 do
   fip=$(cat /var/tmp/autoip.dat)
-  nip=$(ifconfig enx44ed5700012a | awk '/ *inet/ {print $2}')
+  nip=$(ifconfig $if | awk '/ *inet/ {print $2}')
   if [[ $fip =~ ^169\.254\.* ]]
   then
     maintainip $if $fip

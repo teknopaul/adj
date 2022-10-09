@@ -15,6 +15,11 @@
 #define ADJ_MIN_BPM             60
 #define ADJ_MAX_BPM             240
 #define ADJ_BEATS_PER_BAR       4     // used by quantized restart, you can stil beat sync other time signatures
+
+// init flags
+#define ADJ_ENTER_TOGGLES       0x01     // flag indicating enter key should toggle on off
+#define ADJ_HAS_VDJ             0x02     // flag indicating vdj detected
+#define ADJ_PAIR_BLUETOOTH      0x04     // ps4 module will pair bluetooth so cable is not needed
 //SNIP_adjh_constants
 
 typedef struct adj_seq_info_s adj_seq_info_t;
@@ -49,7 +54,7 @@ struct adj_seq_info_s {
     float       bpm;
     snd_seq_tick_time_t tick;
     char        alsa_sync;
-    adj_ui_t*     ui;
+    adj_ui_t*   ui;
     vdj_t*      vdj;
     adj_message_handler_pt      message_handler;
     adj_data_change_handler_pt  data_change_handler;

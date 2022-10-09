@@ -1,0 +1,64 @@
+#!/bin/bash
+#
+# fix up avahi autoip so you do actually get an autoip
+#
+# avahi-autoipd seems to work then randomly drops the ip address
+#
+# this script saves the ip to `/var/tmp/autoip.dat`
+#
+
+if=${1:-eth0}
+
+function maintainip {
+  if=$1
+  ip=$2
+  echo $ip > /var/tmp/autoip.dat
+  echo "maintaining $ip on $if"
+  while true
+  do
+    if ifconfig $if | grep inet >/dev/null
+    then
+       sleep 5
+    else
+       echo "ip gone, adding it back"
+       ip addr add $ip/16 broadcast 169.254.0.0 dev $if
+       sleep 1
+    fi
+  done
+
+}
+
+rm -f /var/tmp/autoip.dat
+
+/usr/sbin/avahi-autoipd --force-bind $if 2>&1 | awk '/^Successfully claimed IP/ {print $5; exit}' > /var/tmp/autoip.dat &
+
+sleep 11
+
+while true
+do
+
+  fip=$(cat /var/tmp/autoip.dat)
+  nip=$(ifconfig $if | awk '/ *inet/ {print $2}')
+  if [[ $fip =~ ^169\.254\.* ]]
+  then
+    maintainip $if $fip
+  elif [[ $nip =~ ^169\.254\.* ]]
+  then
+    maintainip $if $nip
+  else
+    for hip in $(hostname -I)
+    do
+      if [[ $hip =~ ^169\.254\.* ]]
+      then
+        maintainip $if $hip
+      fi
+    done
+  fi
+
+  sleep 2
+done
+
+
+
+
+

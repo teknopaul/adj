@@ -1,0 +1,4 @@
+rfkill block wifi
+systemctl disable wpa_supplicant.service
+
+

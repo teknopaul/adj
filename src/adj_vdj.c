@@ -276,7 +276,11 @@ adj_update_ph(vdj_t* v, cdj_cdj_status_packet_t* cs_pkt)
     if ( cs_pkt->player_id ) {
         if ( (m = vdj_get_link_member(v, cs_pkt->player_id)) ) {
             flags = cdj_status_flags(cs_pkt);
-            char* status = cdj_flags_to_emoji(flags);
+
+            //char* status = cdj_flags_to_emoji(flags);
+
+            char* status = cdj_flags_to_term(flags);
+
             tui_lock();
             slot = get_slot(cs_pkt->player_id);
             render_bpm(slot, m->bpm);
@@ -355,6 +359,12 @@ adj_beat_ph(vdj_t* v, cdj_beat_packet_t* b_pkt)
     }
 }
 
+// handler for members timing out / disconnect
+static void
+adj_expired_h(vdj_t* v, vdj_link_member_t* m)
+{
+
+}
 /**
  * Virtual CDJ application entry point.
  */
@@ -394,7 +404,7 @@ adj_vdj_init(adj_seq_info_t* adj, char* iface, uint32_t flags, float bpm, uint32
         return NULL;
     }
 
-    if (vdj_pselect_init(v, adj_discovery_ph, NULL, adj_beat_ph, NULL, adj_update_ph ) != CDJ_OK) {
+    if (vdj_pselect_init(v, adj_discovery_ph, NULL, adj_beat_ph, NULL, adj_update_ph, adj_expired_h) != CDJ_OK) {
         fprintf(stderr, "error: cdj pselect\n");
         vdj_pselect_stop(v);
         usleep(200000);
@@ -414,6 +424,7 @@ adj_vdj_copy_bpm(adj_seq_info_t* adj, uint8_t player_id)
         if ( (m = vdj_get_link_member(adj->vdj, player_id))) {
             if (m->bpm >= ADJ_MIN_BPM && m->bpm <= ADJ_MAX_BPM) {
                 adj_set_tempo(adj, m->bpm);
+                bpm = m->bpm;
                 return;
             }
         }
@@ -429,6 +440,7 @@ adj_vdj_copy_master(adj_seq_info_t* adj)
     if (master && adj->vdj && adj->vdj->backline) {
         if ( (m = vdj_get_link_member(adj->vdj, master))) {
             adj_set_tempo(adj, m->bpm);
+            bpm = m->bpm;
             return master;
         }
     }
@@ -446,6 +458,7 @@ adj_vdj_copy_other(adj_seq_info_t* adj)
             if (i == master || i == adj->vdj->player_id) continue;
             if ( (m = vdj_get_link_member(adj->vdj, i))) {
                 adj_set_tempo(adj, m->bpm);
+                bpm = m->bpm;
                 return i;
             }
         }

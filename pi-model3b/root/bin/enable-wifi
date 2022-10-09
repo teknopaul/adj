@@ -1,0 +1,2 @@
+rfkill unblock wifi
+systemctl enable wpa_supplicant.service 

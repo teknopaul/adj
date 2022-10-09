@@ -1,0 +1,38 @@
+
+
+//SNIP_FILE SNIP_adjh_constants  ../../src/adj.h
+
+#include "../snip_core.h"
+
+
+
+// whole mod file is included
+
+#include "../../src/mod/adj_mod_seq_rideomatic.c"
+
+
+int main(int argc , char* argv[]) 
+{
+
+    adj_seq_info_t adj;
+
+    snip_assert("no ride on first", ! adj_mod_seq_events_next(&adj, 0, 0));
+    snip_assert("no off on second", ! adj_mod_seq_events_next(&adj, 0, 0));
+    snip_assert("no ride1",         ! adj_mod_seq_events_next(&adj, 0, 0));
+    snip_assert("no ride2",         ! adj_mod_seq_events_next(&adj, 0, 0));
+    snip_assert("expect ride1",       adj_mod_seq_events_next(&adj, 0, 0) != NULL);
+    snip_assert("expect off",         adj_mod_seq_events_next(&adj, 0, 0) != NULL);
+    snip_assert("no ride3",          ! adj_mod_seq_events_next(&adj, 0, 0));
+    snip_assert("no ride4",          ! adj_mod_seq_events_next(&adj, 0, 0));
+    snip_assert("expect ride2",       adj_mod_seq_events_next(&adj, 0, 0) != NULL);
+    snip_assert("expect off",         adj_mod_seq_events_next(&adj, 0, 0) != NULL);
+    snip_assert("no ride5",          ! adj_mod_seq_events_next(&adj, 0, 0));
+    snip_assert("no ride6",          ! adj_mod_seq_events_next(&adj, 0, 0));
+    snip_assert("expect ride2",       adj_mod_seq_events_next(&adj, 0, 0) != NULL);
+    snip_assert("expect off",         adj_mod_seq_events_next(&adj, 0, 0) != NULL);
+
+
+
+    return 0;
+}
+

@@ -12,7 +12,8 @@
  */
 
 static struct termios* term_orig = NULL;
-static unsigned int key_flags;
+static uint32_t keyb_flags;
+static int has_vdj = 0;
 
 static unsigned _Atomic adj_keyb_running = ATOMIC_VAR_INIT(0);
 
@@ -137,16 +138,16 @@ static void* read_keys(void* arg)
                     ch = getchar();
                     switch(ch) {
                         case 'P':// F1
-                            adj_vdj_copy_bpm(adj, 1);
+                            if (has_vdj) adj_vdj_copy_bpm(adj, 1);
                             continue;
                         case 'Q':// F2
-                            adj_vdj_copy_bpm(adj, 2);
+                            if (has_vdj) adj_vdj_copy_bpm(adj, 2);
                             continue;
                         case 'R': // F3
-                            adj_vdj_copy_bpm(adj, 3);
+                            if (has_vdj) adj_vdj_copy_bpm(adj, 3);
                             continue;
                         case 'S':// F4
-                            adj_vdj_copy_bpm(adj, 4);
+                            if (has_vdj) adj_vdj_copy_bpm(adj, 4);
                             continue;
 
                         default: 
@@ -154,14 +155,14 @@ static void* read_keys(void* arg)
                     }
                 } else if (ch == '\033'){ // Esc Esc  reset bpm entry & turn of sync
                     reset_char_bpm();
-                    adj_vdj_difflock_arff(adj);
+                    if (has_vdj) adj_vdj_difflock_arff(adj);
                 }
 
                 continue;
             // space bar or enter
             } else if (ch == ' ') {
                 adj_toggle(adj);
-            } else if (ch == '\n' && (key_flags & ADJ_ENTER_TOGGLES) ) {
+            } else if (ch == '\n' && (keyb_flags & ADJ_ENTER_TOGGLES) ) {
                 adj_toggle(adj);
             } else if (ch == 'r') {
                 adj_adjust_tempo(adj, 1.0);
@@ -182,40 +183,40 @@ static void* read_keys(void* arg)
                 adj_adjust_tempo(adj, -0.1);
 
             } else if (ch == 'u') {
-                adj_vdj_trigger_from_player(adj, 1);
+                if (has_vdj) adj_vdj_trigger_from_player(adj, 1);
             } else if (ch == 'i') {
-                adj_vdj_trigger_from_player(adj, 2);
+                if (has_vdj) adj_vdj_trigger_from_player(adj, 2);
             } else if (ch == 'o') {
-                adj_vdj_trigger_from_player(adj, 3);
+                if (has_vdj) adj_vdj_trigger_from_player(adj, 3);
             } else if (ch == 'p') {
-                adj_vdj_trigger_from_player(adj, 4);
+                if (has_vdj) adj_vdj_trigger_from_player(adj, 4);
 
 
             } else if (ch == 'U') {
-                adj_vdj_difflock(adj, 1, 0);
+                if (has_vdj) adj_vdj_difflock(adj, 1, 0);
             } else if (ch == 'I') {
-                adj_vdj_difflock(adj, 2, 0);
+                if (has_vdj) adj_vdj_difflock(adj, 2, 0);
             } else if (ch == 'O') {
-                adj_vdj_difflock(adj, 3, 0);
+                if (has_vdj) adj_vdj_difflock(adj, 3, 0);
             } else if (ch == 'P') {
-                adj_vdj_difflock(adj, 4, 0);
+                if (has_vdj) adj_vdj_difflock(adj, 4, 0);
             } else if (ch == 0x3e) {
-                adj_vdj_difflock_nudge(adj, 1);
+                if (has_vdj) adj_vdj_difflock_nudge(adj, 1);
             } else if (ch == 0x3c) {
-                adj_vdj_difflock_nudge(adj, -1);
+                if (has_vdj) adj_vdj_difflock_nudge(adj, -1);
             } else if (ch == 'V') {
-                adj_vdj_difflock_nudge(adj, 1);
+                if (has_vdj) adj_vdj_difflock_nudge(adj, 1);
             } else if (ch == 'X') {
-                adj_vdj_difflock_nudge(adj, -1);
+                if (has_vdj) adj_vdj_difflock_nudge(adj, -1);
 
             } else if (ch == 'M') {
-                adj_vdj_difflock_master(adj, difflock_master = !difflock_master);
+                if (has_vdj) adj_vdj_difflock_master(adj, difflock_master = !difflock_master);
 
             } else if (ch == 'B') {
-                adj_vdj_become_master(adj);
+                if (has_vdj) adj_vdj_become_master(adj);
 
             } else if (ch == 'C') {
-                adj_vdj_follow_tempo(adj, follow_tempo = !follow_tempo);
+                if (has_vdj) adj_vdj_follow_tempo(adj, follow_tempo = !follow_tempo);
 
             } else if (ch == 'K') { 
                 // quit process, stops all synths
@@ -244,31 +245,31 @@ static void* read_keys(void* arg)
                         float bpm = get_bpm();
                         if (bpm > 0) {
                             adj_set_tempo(adj, bpm);
-                            adj_vdj_difflock_arff(adj);
+                            if (has_vdj) adj_vdj_difflock_arff(adj);
                         }
                         reset_char_bpm();
                     }
                 }
                 uint8_t player_id = (uint8_t)(ch - '0');
                 if (copying_bpm) {
-                    adj_vdj_copy_bpm(adj, player_id);
-                    adj_vdj_difflock_arff(adj);
+                    if (has_vdj) adj_vdj_copy_bpm(adj, player_id);
+                    if (has_vdj) adj_vdj_difflock_arff(adj);
                     reset_char_bpm();
                 }
                 else if (setting_difflock) {
-                    adj_vdj_difflock(adj, player_id, 0);
+                    if (has_vdj) adj_vdj_difflock(adj, player_id, 0);
                     reset_char_bpm();
                 }
                 else if (setting_default_difflock) {
-                    adj_vdj_difflock(adj, player_id, 1);
+                    if (has_vdj) adj_vdj_difflock(adj, player_id, 1);
                     reset_char_bpm();
                 }
                 else if (setting_trigger) {
-                    adj_vdj_trigger_from_player(adj, player_id);
+                    if (has_vdj) adj_vdj_trigger_from_player(adj, player_id);
                     reset_char_bpm();
                 }
                 else if (setting_track_start) {
-                    adj_vdj_track_start(adj, player_id);
+                    if (has_vdj) adj_vdj_track_start(adj, player_id);
                     reset_char_bpm();
                 }
                 continue;
@@ -286,9 +287,11 @@ static void* read_keys(void* arg)
 }
 
 
-int adj_keyb_input(adj_seq_info_t* adj, unsigned int flags)
+int adj_keyb_input(adj_seq_info_t* adj, uint32_t flags)
 {
-    key_flags = flags;
+    keyb_flags = flags;
+    if (keyb_flags & ADJ_HAS_VDJ) has_vdj = 1;
+
     pthread_t thread_id;
     init_term();
     reset_char_bpm();

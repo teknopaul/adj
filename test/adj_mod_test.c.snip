@@ -1,0 +1,28 @@
+
+
+//SNIP_FILE SNIP_adjh_constants  ../src/adj.h
+
+#include "snip_core.h"
+
+#include <dlfcn.h>
+#include <libusb.h>
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <ctype.h>
+
+#include "../src/adj.h"
+
+//SNIP_FILE SNIP_mod  ../src/adj_mod.c
+
+
+int main(int argc , char* argv[]) 
+{
+
+    find_all_usb_devs();
+    char* dev = select_mod();
+    printf("usb device = '%s'\n", dev);
+
+    return 0;
+}
+

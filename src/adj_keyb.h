@@ -11,8 +11,6 @@
 #include <pthread.h>
 #include <termios.h>
 
-#define ADJ_ENTER_TOGGLES   0x1
-
 void adj_keyb_reset_term();
 
 /**

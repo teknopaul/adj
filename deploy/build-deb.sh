@@ -27,11 +27,12 @@ project_root=$PWD
 #
 tmp_dir=/tmp/$name-debbuild
 rm -rf $tmp_dir
-mkdir -p $tmp_dir/DEBIAN $tmp_dir/usr/bin $tmp_dir/$lib_dir $tmp_dir/etc
+mkdir -p $tmp_dir/DEBIAN $tmp_dir/usr/bin $tmp_dir/$lib_dir/adj $tmp_dir/etc
 chmod 755 $tmp_dir/DEBIAN $tmp_dir/usr/bin $tmp_dir/$lib_dir $tmp_dir/etc
 
 cp --archive target/adj $tmp_dir/usr/bin
 cp --archive target/libadj.so $tmp_dir/$lib_dir/libadj.so.1.0
+cp --archive target/mod/*.so $tmp_dir/$lib_dir/adj
 (cd $tmp_dir/$lib_dir; ln -s libadj.so.1.0 libadj.so)
 cp --archive etc/* $tmp_dir/etc
 

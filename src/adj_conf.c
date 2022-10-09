@@ -24,7 +24,7 @@ ltrim(char *line)
 static char*
 copy(char* value)
 {
-    char* s =  (char*) calloc(1, strlen(value));
+    char* s =  (char*) calloc(1, strlen(value) + 1);
     if (s == NULL) {
         return NULL;
     }
@@ -48,6 +48,12 @@ set(adj_conf* conf, char* name, char* value)
     }
     else if (strcmp("numpad_in", name) == 0) {
         conf->numpad_in = ltrim(value)[0] == 't';
+    }
+    else if (strcmp("joystick_in", name) == 0) {
+        conf->joystick_in = ltrim(value)[0] == 't';
+    }
+    else if (strcmp("scan_usb_in", name) == 0) {
+        conf->scan_usb_in = ltrim(value)[0] == 't';
     }
     else if (strcmp("midi_in", name) == 0) {
         conf->midi_in = copy(ltrim(value));
@@ -141,6 +147,17 @@ adj_conf_init()
     int in = open("/etc/adj.conf", O_RDONLY);
     if ( in == -1 ) {
         fprintf(stderr, "cannot open /etc/adj.conf\n");
+        return NULL;
+    }
+    return adj_parse(in);
+}
+
+adj_conf*
+adj_conf_init_file(char* file_name)
+{
+    int in = open(file_name, O_RDONLY);
+    if ( in == -1 ) {
+        fprintf(stderr, "cannot open %s\n", file_name);
         return NULL;
     }
     return adj_parse(in);

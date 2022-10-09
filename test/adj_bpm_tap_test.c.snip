@@ -1,0 +1,43 @@
+
+
+#include <time.h>
+
+//SNIP_FILE SNIP_adjh_constants  ../src/adj.h
+
+#include "snip_core.h"
+
+//SNIP_FILE SNIP_utils  ../src/libadj.c
+
+
+// test the whole file
+#include "../src/adj_bpm_tap.c"
+
+static int called = 0;
+
+void
+adj_set_tempo(adj_seq_info_t* adj, float bpm)
+{
+    called = 1;
+    adj->bpm = bpm;
+}
+
+int main(int argc , char* argv[]) 
+{
+    adj_seq_info_t* adj = calloc(1, sizeof(adj_seq_info_t));
+
+    adj_bpm_tap(adj);
+    usleep(500000);
+    adj_bpm_tap(adj);
+    usleep(500000);
+    adj_bpm_tap(adj);
+    usleep(493000); // makes it come out 120.5 ish
+    adj_bpm_tap(adj);
+    snip_assert("tap called", called);
+    // in tests less that 120.00 bpm???
+    //printf("bpm=%f\n", adj->bpm);
+    snip_assert("tap called", adj->bpm > 120.0);
+    snip_assert("tap called", adj->bpm < 121.0);
+
+    return 0;
+}
+

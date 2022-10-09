@@ -8,7 +8,7 @@
 
 // user interface
 
-static unsigned _Atomic adj_running = ATOMIC_VAR_INIT(1);
+static unsigned _Atomic adj_tui_running = ATOMIC_VAR_INIT(1);
 
 static int message_ticks = 0;
 
@@ -80,13 +80,6 @@ static void clear_message()
     }
 }
 
-static void signal_exit(int sig)
-{
-    tui_lock();
-    tui_exit();
-    tui_unlock();
-}
-
 
 
 // callbacks
@@ -140,8 +133,13 @@ static void tick_handler(adj_ui_t* ui, adj_seq_info_t* adj, snd_seq_tick_time_t 
 
 static void exit_handler(adj_ui_t* ui, int sig)
 {
-    adj_running = 0;
-    signal_exit(sig);
+    adj_tui_running = 0;
+    tui_lock();
+    tui_set_cursor_pos(0, 0);
+    puts("\n\n");
+    fflush(stdout);
+    tui_exit();
+    tui_unlock();
 }
 
 static void stop_handler(adj_ui_t* ui, adj_seq_info_t* adj)
@@ -157,11 +155,16 @@ static void start_handler(adj_ui_t* ui, adj_seq_info_t* adj)
     //if (tui) tui_text_at("|...:...:...:...|...:...:...:...|...:...:...:...|...:...:...:...|", 2, 1);
 }
 
+static void beat_handler(adj_ui_t* ui, adj_seq_info_t* adj, unsigned char player_id)
+{
+
+}
+
 static void* run(void* arg)
 {
     sleep(2);
-    adj_running = 1;
-    while (adj_running) {
+    adj_tui_running = 1;
+    while (adj_tui_running) {
         usleep(50000);
         if (message_ticks && ++message_ticks > 50) {
             clear_message();
@@ -179,7 +182,7 @@ void initialize_tui(adj_ui_t* ui, uint64_t flags)
     ui->data_item_handler = data_item_handler;
     ui->data_change_handler = data_change_handler;
     ui->tick_handler = tick_handler;
-    ui->beat_handler = NULL;
+    ui->beat_handler = beat_handler;
     ui->stop_handler = stop_handler;
     ui->start_handler = start_handler;
     ui->exit_handler = exit_handler;

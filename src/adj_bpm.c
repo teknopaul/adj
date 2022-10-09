@@ -61,7 +61,7 @@ adj_estimate_bpm_track(uint8_t player_id, struct timespec now)
     uint64_t beat_count = track_total[1 + (player_id * 2)];
     if (first_beat && beat_count) {
         uint64_t avg_beat_len = (now_m - first_beat) / beat_count;
-        fprintf(stderr, "first_beat=%li, now_m=%li, (now_m - first_beat)=%li, beat_count=%li bpm=%f\n", first_beat, now_m, (now_m - first_beat), beat_count, adj_micros_to_bpm(avg_beat_len));
+        //fprintf(stderr, "first_beat=%lli, now_m=%lli, (now_m - first_beat)=%lli, beat_count=%lli bpm=%f\n", first_beat, now_m, (now_m - first_beat), beat_count, adj_micros_to_bpm(avg_beat_len));
         return adj_micros_to_bpm(avg_beat_len);
     } else {
         return 0;

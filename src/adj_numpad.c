@@ -12,7 +12,8 @@
  */
 
 static struct termios* term_orig = NULL;
-static unsigned int key_flags;
+static uint32_t numpad_flags;
+static int has_vdj;
 static unsigned int difflock = 0;
 
 static unsigned _Atomic adj_numpad_running = ATOMIC_VAR_INIT(0);
@@ -182,7 +183,7 @@ static void* read_keys(void* arg)
             else if (ch == '*') {
                 player_id = adj_vdj_copy_master(adj);
                 if (player_id) {
-                    adj_vdj_difflock(adj, player_id, 0);
+                    adj_vdj_difflock(adj, player_id, 1);
                     difflock = 1;
                 }
             }
@@ -190,7 +191,7 @@ static void* read_keys(void* arg)
             else if (ch == '/') {
                 player_id = adj_vdj_copy_other(adj);
                 if (player_id) {
-                    adj_vdj_difflock(adj, player_id, 0);
+                    adj_vdj_difflock(adj, player_id, 1);
                     difflock = 1;
                 }
             }
@@ -200,8 +201,9 @@ static void* read_keys(void* arg)
                         float bpm = get_bpm();
                         if (bpm > 0) {
                             adj_set_tempo(adj, bpm);
-                            adj_vdj_difflock_arff(adj);
                         }
+                        // setting bpm to 000.00 removes diff lock, but does not set tempo
+                        adj_vdj_difflock_arff(adj);
                         reset_char_bpm();
                     }
                 continue;
@@ -219,9 +221,11 @@ static void* read_keys(void* arg)
 }
 
 
-int adj_numpad_input(adj_seq_info_t* adj, unsigned int flags)
+int adj_numpad_input(adj_seq_info_t* adj, uint32_t flags)
 {
-    key_flags = flags;
+    numpad_flags = flags;
+    if (numpad_flags & ADJ_HAS_VDJ) has_vdj = 1;
+
     pthread_t thread_id;
     init_term();
     reset_char_bpm();

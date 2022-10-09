@@ -1,0 +1,8 @@
+#!/bin/bash
+#
+# adj launch scripte called ./888 so it can be typed with a keypad
+#
+echo "$(date --iso-8601=seconds): starting adj" | netcat -bu -w1 169.254.255.255 4000 &
+disown
+sudo /root/bin/start-adj
+

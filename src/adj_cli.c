@@ -15,11 +15,6 @@ static void data_item(adj_ui_t* ui, int idx, char* name, char* value)
     printf("%s  %s\n", name, value);
 }
 
-static void signal_exit(int sig)
-{
-    putchar('\n');
-}
-
 static char* symbol_off(int q_beat)
 {
     if (q_beat % 16 == 0) return "|";
@@ -54,7 +49,7 @@ static void tick_handler(adj_ui_t* ui, adj_seq_info_t* adj, snd_seq_tick_time_t 
 
 static void exit_handler(adj_ui_t* ui, int sig)
 {
-    signal_exit(sig);
+    putchar('\n');
 }
 
 static void stop_handler(adj_ui_t* ui, adj_seq_info_t* adj)
@@ -67,6 +62,10 @@ static void start_handler(adj_ui_t* ui, adj_seq_info_t* adj)
 
 }
 
+static void beat_handler(adj_ui_t* ui, adj_seq_info_t* adj, unsigned char player_id)
+{
+
+}
 
 void initialize_cli(adj_ui_t* ui, uint64_t flags)
 {
@@ -75,7 +74,7 @@ void initialize_cli(adj_ui_t* ui, uint64_t flags)
     ui->data_item_handler = data_item;
     ui->data_change_handler = data_change_handler;
     ui->tick_handler = tick_handler;
-    ui->beat_handler = NULL;
+    ui->beat_handler = beat_handler;
     ui->stop_handler = stop_handler;
     ui->start_handler = start_handler;
     ui->exit_handler = exit_handler;

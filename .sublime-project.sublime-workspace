@@ -1,0 +1,505 @@
+{
+	"auto_complete":
+	{
+		"selected_items":
+		[
+			[
+				"e",
+				"elif\telif …"
+			],
+			[
+				"new",
+				"new_master"
+			],
+			[
+				"get",
+				"vdj_get_link_member"
+			],
+			[
+				"vdj_sen",
+				"vdj_sendto_beat"
+			],
+			[
+				"d",
+				"d_pkt"
+			],
+			[
+				"CDJ",
+				"CDJ_ERROR"
+			],
+			[
+				"SIGAR",
+				"SIGALRM"
+			],
+			[
+				"upda",
+				"update_ph"
+			],
+			[
+				"cdj_",
+				"cdj_cdj_status_packet_t"
+			],
+			[
+				"inc",
+				"inc\t#include \"…\""
+			],
+			[
+				"in",
+				"include"
+			],
+			[
+				"vdj_disc",
+				"vdj_handle_managed_discovery_unicast_datagram"
+			],
+			[
+				"su",
+				"suppress_discovery"
+			],
+			[
+				"bea",
+				"beat_millis"
+			],
+			[
+				"CDJ_",
+				"CDJ_DISCOVERY"
+			],
+			[
+				"ba",
+				"bar_index"
+			],
+			[
+				"a",
+				"a_pkt"
+			],
+			[
+				"b",
+				"bpm"
+			],
+			[
+				"stat",
+				"status"
+			],
+			[
+				"lin",
+				"link_members"
+			],
+			[
+				"li",
+				"link_members"
+			],
+			[
+				"call",
+				"calloc"
+			],
+			[
+				"pla",
+				"player_id"
+			],
+			[
+				"pl",
+				"player_number"
+			],
+			[
+				"c",
+				"c_bpm"
+			],
+			[
+				"mi",
+				"millis_in_a_beat"
+			],
+			[
+				"broad",
+				"broadcast_addr"
+			],
+			[
+				"ip_add",
+				"ip_addr"
+			],
+			[
+				"br",
+				"broadcast_s"
+			],
+			[
+				"net",
+				"netmask_s"
+			],
+			[
+				"deb",
+				"debug_broadcast"
+			],
+			[
+				"mess",
+				"message_off"
+			],
+			[
+				"mes",
+				"message_ticks"
+			],
+			[
+				"ch",
+				"channel"
+			],
+			[
+				"r",
+				"required"
+			],
+			[
+				"bp",
+				"bpm_change"
+			],
+			[
+				"drop",
+				"dropping"
+			],
+			[
+				"tui_set",
+				"tui_set_cursor_pos"
+			],
+			[
+				"qu",
+				"quarter_beats"
+			],
+			[
+				"verbose",
+				"verbose_handler"
+			],
+			[
+				"da",
+				"data_change_handler"
+			],
+			[
+				"ad",
+				"adj"
+			],
+			[
+				"ver",
+				"verbose_handler"
+			],
+			[
+				"ti",
+				"tick_handler"
+			],
+			[
+				"ADJ_MIDIIN_RE",
+				"ADJ_MIDIIN_NUDGE_FREW"
+			],
+			[
+				"ADJ_MIDIIN_N",
+				"ADJ_MIDIIN_NUDGE_FREV"
+			],
+			[
+				"def",
+				"default"
+			],
+			[
+				"print",
+				"printf\tprintf …"
+			],
+			[
+				"sl",
+				"sleep_one_beat"
+			],
+			[
+				"al",
+				"alsa_seq"
+			],
+			[
+				"as",
+				"alsa_seq"
+			],
+			[
+				"als",
+				"alsa_port"
+			],
+			[
+				"floa",
+				"floating"
+			]
+		]
+	},
+	"buffers":
+	[
+	],
+	"build_system": "",
+	"build_system_choices":
+	[
+	],
+	"build_varint": "",
+	"command_palette":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"console":
+	{
+		"height": 150.0,
+		"history":
+		[
+			"make"
+		]
+	},
+	"distraction_free":
+	{
+		"menu_visible": true,
+		"show_minimap": false,
+		"show_open_files": false,
+		"show_tabs": false,
+		"side_bar_visible": false,
+		"status_bar_visible": false
+	},
+	"file_history":
+	[
+		"/home/teknopaul/bzr_workspace/adj/.sublime-project",
+		"/home/teknopaul/bzr_workspace/xtomp/xtomp-ngin/src/xtomp/xtomp_parse.c",
+		"/home/teknopaul/bzr_workspace/libcdj/src/c/cdj_scan.c",
+		"/home/teknopaul/bzr_workspace/libcdj/src/c/cdj.c",
+		"/home/teknopaul/bzr_workspace/libcdj/src/c/vdj_master.c",
+		"/home/teknopaul/bzr_workspace/libcdj/src/c/vdj_discovery.c",
+		"/home/teknopaul/bzr_workspace/libcdj/deploy/build-deb.sh",
+		"/home/teknopaul/bzr_workspace/libcdj/Makefile",
+		"/home/teknopaul/bzr_workspace/libcdj/src/x/vdj_nfs_explore.c",
+		"/home/teknopaul/bzr_workspace/libcdj/src/x/vdj_list_exports.c",
+		"/home/teknopaul/bzr_workspace/libcdj/src/c/vdj_beatout.c",
+		"/home/teknopaul/bzr_workspace/libcdj/src/c/vdj.h",
+		"/home/teknopaul/bzr_workspace/libcdj/src/c/vdj.c",
+		"/home/teknopaul/bzr_workspace/libcdj/src/c/vdj_pselect.c",
+		"/home/teknopaul/bzr_workspace/serverinstalls/HLD.md",
+		"/home/teknopaul/bzr_workspace/mrniceguy/src/usr/bin/mng",
+		"/home/teknopaul/bzr_workspace/amidiclock/doc/openwrt.jpeg",
+		"/home/teknopaul/bzr_workspace/libcdj/src/c/cdj.h",
+		"/home/teknopaul/bzr_workspace/libcdj/make-clean",
+		"/home/teknopaul/bzr_workspace/libcdj/doc-internal/todo.md",
+		"/home/teknopaul/bzr_workspace/libcdj/src/test/dump.c",
+		"/home/teknopaul/bzr_workspace/libcdj/src/c/vdj_master.h",
+		"/home/teknopaul/bzr_workspace/libcdj/src/c/vdj_1.c",
+		"/home/teknopaul/bzr_workspace/libcdj/src/test/test_libcdj.c",
+		"/home/teknopaul/bzr_workspace/libcdj/src/test/libcdj_pkts_test.c.snip",
+		"/home/teknopaul/bzr_workspace/libcdj/src/c/vdj_pselect.h",
+		"/home/teknopaul/bzr_workspace/libcdj/src/test/libcdj_pkts_test.c",
+		"/home/teknopaul/bzr_workspace/libcdj/src/c/vdj_clock.c",
+		"/home/teknopaul/bzr_workspace/libcdj/src/c/vdj_main.c",
+		"/home/teknopaul/bzr_workspace/libcdj/src/c/cdj_mon.c",
+		"/home/teknopaul/bzr_workspace/libcdj/src/c/vdj_debug.c",
+		"/home/teknopaul/bzr_workspace/libcdj/src/test/test_libcdj_pkts.c.snip",
+		"/home/teknopaul/bzr_workspace/libcdj/README.md",
+		"/home/teknopaul/bzr_workspace/libcdj/src/c/cdj_mon_tui.c",
+		"/home/teknopaul/bzr_workspace/libcdj/src/c/vdj_mon.c",
+		"/home/teknopaul/bzr_workspace/libcdj/src/c/vdj_net.c",
+		"/home/teknopaul/bzr_workspace/libcdj/src/c/vdj_net.h",
+		"/home/teknopaul/bzr_workspace/libcdj/src/c/vdj_discovery.h",
+		"/home/teknopaul/bzr_workspace/libcdj/src/c/vdj_set_bpm.c",
+		"/home/teknopaul/bzr_workspace/libcdj/src/c/vdj_simple.c",
+		"/home/teknopaul/bzr_workspace/libcdj/src/c/vdj_simple.h",
+		"/home/teknopaul/bzr_workspace/libcdj/src/c/vdj_store.c",
+		"/home/teknopaul/bzr_workspace/libcdj/doc-internal/ns_timers.c",
+		"/home/teknopaul/bzr_workspace/libcdj/src/c/vdj_beatout.h",
+		"/home/teknopaul/bzr_workspace/libcdj/src/test/time_diff_test.c.snip",
+		"/transfer/rb-mac/rekordbox.pkg/Payload",
+		"/transfer/rb-mac/rekordbox.pkg/PackageInfo",
+		"/transfer/rb-mac/Resources/en.lproj/Welcome",
+		"/transfer/rb-mac/Resources/en.lproj/License",
+		"/home/teknopaul/bzr_workspace/libcdj/src/test/time_diff_test.c.make",
+		"/home/teknopaul/bzr_workspace/libcdj/src/test/bpm_madness_test.c.snip",
+		"/home/teknopaul/bzr_workspace/libcdj/.sublime-project",
+		"/home/teknopaul/bzr_workspace/amidiclock/src/tui.h",
+		"/home/teknopaul/bzr_workspace/amidiclock/src/tui.c",
+		"/home/teknopaul/bzr_workspace/amidiclock/src/adj_vdj.h",
+		"/home/teknopaul/bzr_workspace/cdjtools/libcdj/Makefile",
+		"/home/teknopaul/bzr_workspace/amidiclock/test/adj_vdj_test.c.make",
+		"/home/teknopaul/bzr_workspace/amidiclock/test/adj_vdj_test.c.snip",
+		"/home/teknopaul/bzr_workspace/amidiclock/src/adj_vdj.c",
+		"/home/teknopaul/bzr_workspace/amidiclock/src/adj.h",
+		"/home/teknopaul/bzr_workspace/cdjtools/libcdj/src/c/vdj.h",
+		"/home/teknopaul/bzr_workspace/cdjtools/libcdj/src/c/cdj.h",
+		"/home/teknopaul/bzr_workspace/amidiclock/test/adj_midiin_test.c.snip",
+		"/home/teknopaul/bzr_workspace/amidiclock/src/adj.c",
+		"/home/teknopaul/bzr_workspace/amidiclock/readme.md",
+		"/home/teknopaul/bzr_workspace/amidiclock/Makefile",
+		"/home/teknopaul/bzr_workspace/amidiclock/test/amidiclock_test.c.snip",
+		"/home/teknopaul/bzr_workspace/cdjtools/libcdj/deploy/build-deb.sh",
+		"/home/teknopaul/bzr_workspace/amidiclock/test/adj_keyb_bpm_test.c.make",
+		"/home/teknopaul/bzr_workspace/amidiclock/test/adj_vdj.c.snip",
+		"/home/teknopaul/bzr_workspace/amidiclock/test/adj_keyb_bpm_test.c.snip",
+		"/home/teknopaul/bzr_workspace/cdjtools/libcdj/src/c/vdj_debug.c",
+		"/home/teknopaul/bzr_workspace/cdjtools/libcdj/src/c/vdj_main.c",
+		"/home/teknopaul/bzr_workspace/cdjtools/libcdj/src/c/vdj.c",
+		"/home/teknopaul/bzr_workspace/cdjtools/libcdj/src/test/test_libcdj.c",
+		"/home/teknopaul/bzr_workspace/cdjtools/libcdj/src/c/cdj_mon_tui.c",
+		"/home/teknopaul/bzr_workspace/cdjtools/libcdj/src/c/cdj_mon.c",
+		"/home/teknopaul/bzr_workspace/cdjtools/libcdj/src/c/cdj.c",
+		"/home/teknopaul/bzr_workspace/cdjtools/libcdj/src/c/vdj_master.c",
+		"/home/teknopaul/bzr_workspace/cdjtools/libcdj/src/c/vdj_set_bpm.c",
+		"/home/teknopaul/bzr_workspace/cdjtools/libcdj/src/c/vdj_beat.c",
+		"/home/teknopaul/bzr_workspace/cdjtools/libcdj/src/c/vdj_beat.h",
+		"/home/teknopaul/bzr_workspace/cdjtools/libcdj/src/c/vdj_net.c",
+		"/home/teknopaul/bzr_workspace/cdjtools/libcdj/src/c/vdj_master.h",
+		"/home/teknopaul/bzr_workspace/cdjtools/libcdj/src/c/vdj_net.h",
+		"/home/teknopaul/bzr_workspace/amidiclock/.sublime-project",
+		"/home/teknopaul/bzr_workspace/amidiclock/.bzrignore",
+		"/home/teknopaul/bzr_workspace/amidiclock/src/libadj.c",
+		"/home/teknopaul/Documents/TODO.md",
+		"/home/teknopaul/bzr_workspace/cdjtools/libcdj/TODO",
+		"/home/teknopaul/bzr_workspace/amidiclock/deploy/build-deb.sh",
+		"/home/teknopaul/Downloads/WeDJ/resources.arsc",
+		"/home/teknopaul/Downloads/WeDJ/classes.dex",
+		"/home/teknopaul/bzr_workspace/cdjtools/libcdj/src/c/libcdj.c",
+		"/home/teknopaul/bzr_workspace/cdjtools/libcdj/src/c/virtual_cdj_debug.c",
+		"/home/teknopaul/bzr_workspace/cdjtools/libcdj/src/c/virtual_cdj_main.c",
+		"/home/teknopaul/bzr_workspace/cdjtools/libcdj/src/c/virtual_cdj.c",
+		"/home/teknopaul/bzr_workspace/cdjtools/libcdj/src/c/virtual_cdj.h",
+		"/home/teknopaul/bzr_workspace/cdjtools/libcdj/src/c/libcdj.h",
+		"/home/teknopaul/bzr_workspace/cdjtools/libcdj/src/c/virtual_cdj_net.c",
+		"/home/teknopaul/bzr_workspace/cdjtools/libcdj/src/c/virtual_cdj_net.h",
+		"/home/teknopaul/bzr_workspace/amidiclock/src/adj_midiin.c",
+		"/home/teknopaul/bzr_workspace/amidiclock/src/cdj_on_tui.c",
+		"/home/teknopaul/bzr_workspace/cdjtools/libcdj/src/c/virtual_cdj_net_detect.c",
+		"/transfer/rekordbox.exe",
+		"/home/teknopaul/bzr_workspace/cdjtools/libcdj/src/c/virtual_cdj_net_detect.h",
+		"/home/teknopaul/bzr_workspace/amidiclock/doc-internal/TODO.md",
+		"/home/teknopaul/bzr_workspace/amidiclock/src/adj_midiin.h",
+		"/home/teknopaul/bzr_workspace/amidiclock/src/adj_midilearn.c",
+		"/home/teknopaul/bzr_workspace/amidiclock/src/adj_keyb.h",
+		"/home/teknopaul/bzr_workspace/amidiclock/src/adj_keyb.c",
+		"/home/teknopaul/bzr_workspace/usbkbd2/src/usbkbd2.c",
+		"/home/teknopaul/bzr_workspace/amidiclock/etc/adj/nano.adjmm",
+		"/home/teknopaul/bzr_workspace/amidiclock/etc/adj/korg-nanokontrol.adjmm",
+		"/home/teknopaul/bzr_workspace/amidiclock/src/print_key_codes.c",
+		"/home/teknopaul/bzr_workspace/amidiclock/test/adj_midiin_test.c.make",
+		"/home/teknopaul/bzr_workspace/amidiclock/test/snip_core.h",
+		"/home/teknopaul/bzr_workspace/amidiclock/test/tui_test.c",
+		"/home/teknopaul/gitlab_workspace/later/plugins/ls.py",
+		"/home/teknopaul/gitlab_workspace/later/later",
+		"/home/teknopaul/gitlab_workspace/later/plugins/revision.py",
+		"/home/teknopaul/gitlab_workspace/later/plugins/plugins.rst",
+		"/home/teknopaul/gitlab_workspace/later/plugins/list_subdirs.py",
+		"/home/teknopaul/gitlab_workspace/later/plugins/htmlreport.py",
+		"/home/teknopaul/gitlab_workspace/later/plugins/git.py",
+		"/home/teknopaul/gitlab_workspace/later/plugins/delete.py",
+		"/home/teknopaul/gitlab_workspace/later/plugins/deadlines.py",
+		"/home/teknopaul/gitlab_workspace/later/plugins/bug_feature.py"
+	],
+	"find":
+	{
+		"height": 28.0
+	},
+	"find_in_files":
+	{
+		"height": 104.0,
+		"where_history":
+		[
+		]
+	},
+	"find_state":
+	{
+		"case_sensitive": true,
+		"find_history":
+		[
+		],
+		"highlight": true,
+		"in_selection": false,
+		"preserve_case": false,
+		"regex": false,
+		"replace_history":
+		[
+		],
+		"reverse": false,
+		"show_context": true,
+		"use_buffer2": true,
+		"whole_word": false,
+		"wrap": true
+	},
+	"groups":
+	[
+		{
+			"sheets":
+			[
+			]
+		}
+	],
+	"incremental_find":
+	{
+		"height": 28.0
+	},
+	"input":
+	{
+		"height": 40.0
+	},
+	"layout":
+	{
+		"cells":
+		[
+			[
+				0,
+				0,
+				1,
+				1
+			]
+		],
+		"cols":
+		[
+			0.0,
+			1.0
+		],
+		"rows":
+		[
+			0.0,
+			1.0
+		]
+	},
+	"menu_visible": true,
+	"output.find_results":
+	{
+		"height": 0.0
+	},
+	"pinned_build_system": "Packages/Makefile/Make.sublime-build",
+	"project": ".sublime-project.sublime-project",
+	"replace":
+	{
+		"height": 52.0
+	},
+	"save_all_on_build": true,
+	"select_file":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_project":
+	{
+		"height": 500.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 380.0
+	},
+	"select_symbol":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"selected_group": 0,
+	"settings":
+	{
+	},
+	"show_minimap": true,
+	"show_open_files": true,
+	"show_tabs": true,
+	"side_bar_visible": true,
+	"side_bar_width": 342.0,
+	"status_bar_visible": true,
+	"template_settings":
+	{
+	}
+}
